@@ -3,7 +3,7 @@
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.9.2-blue" alt="Versión 0.6.9.2" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.9.2-blue" alt="Versión 0.6.10" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>
@@ -114,8 +114,8 @@ npm run desktop:dev</code></pre>
     <tr><td>0.5.5–0.5.15</td><td>Respaldos manuales, interfaz responsive, exportaciones CSV y correcciones.</td></tr>
     <tr><td>0.6.0–0.6.1</td><td>Punto de venta, medios de pago, historial, correcciones del vuelto y fotos.</td></tr>
     <tr><td>0.6.3</td><td>Precio con IVA incluido, carrito destacado y abonos a crédito (en pruebas).</td></tr>
-    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td><td>Planificada</td></tr>
-    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td><td>Planificada</td></tr>
+    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td></tr>
+    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td></tr>
   </tbody>
 </table>
 <p>Las notas históricas detalladas se conservan en los archivos <code>NOTAS_VERSION_*.txt</code> del proyecto, cuando estén disponibles.</p>

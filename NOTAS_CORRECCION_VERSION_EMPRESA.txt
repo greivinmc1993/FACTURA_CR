@@ -1,6 +1,0 @@
-Corrección sobre FacturaCR 0.6.2
-- Recuerda la empresa activa al reiniciar usando almacenamiento local.
-- Si la empresa no existe, selecciona la primera disponible.
-- El número de versión visible se obtiene de package.json durante la compilación de Vite.
-- La restauración de respaldos descarta el ID anterior.
-- Reinstalar el ejecutable recompilado para actualizar la versión instalada.

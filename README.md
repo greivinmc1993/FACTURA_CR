@@ -3,7 +3,7 @@
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.3-blue" alt="Versión 0.6.3" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.9.2-blue" alt="Versión 0.6.9.2" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>
@@ -114,8 +114,6 @@ npm run desktop:dev</code></pre>
     <tr><td>0.5.5–0.5.15</td><td>Respaldos manuales, interfaz responsive, exportaciones CSV y correcciones.</td></tr>
     <tr><td>0.6.0–0.6.1</td><td>Punto de venta, medios de pago, historial, correcciones del vuelto y fotos.</td></tr>
     <tr><td>0.6.3</td><td>Precio con IVA incluido, carrito destacado y abonos a crédito (en pruebas).</td></tr>
-    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td><td>Planificada</td></tr>
-    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td><td>Planificada</td></tr>
   </tbody>
 </table>
 <p>Las notas históricas detalladas se conservan en los archivos <code>NOTAS_VERSION_*.txt</code> del proyecto, cuando estén disponibles.</p>
@@ -183,3 +181,48 @@ En **Ventas → Personalizar tiquete**, puedes cargar un logotipo PNG, JPEG o We
 
 ### Claridad en configuración de respaldos
 La opción **Cantidad de respaldos que deseas conservar** limita el número total de archivos automáticos (1 a 365). Por ejemplo, 14 respaldos diarios equivalen aproximadamente a dos semanas; el más antiguo se elimina al superar el límite. La casilla de activación ahora está alineada con su descripción.
+
+
+### v0.6.5 · Personalización de tiquetes protegida por respaldos
+- Los ajustes de impresión por empresa (logotipo, ancho de papel, plantilla, impresora, copias, etc.) se guardan también en SQLite.
+- Al entrar a Ventas, la configuración previa de `localStorage` se migra automáticamente a SQLite si aún no existía en la base.
+- Los respaldos manuales y automáticos de SQLite creados a partir de esta versión incluyen estas preferencias.
+- Al restaurar una copia que contenga los ajustes, se recuperan automáticamente al abrir Ventas.
+- La selección de empresa sigue recordándose localmente; no hay empresa predeterminada.
+- Nota: los respaldos anteriores a esta actualización no contienen las preferencias de impresión. El respaldo de SQLite no incluye la configuración del programador de respaldos, guardada por separado en JSON.
+
+### Corrección puntual: último colón de crédito
+Se permite registrar el abono final cuando el saldo visible es ₡1 pero la base conserva céntimos. El servidor valida el saldo actual y liquida exactamente los céntimos pendientes dentro de una transacción SQLite. No se modificaron otros módulos de la interfaz.
+
+
+### v0.6.6 — Botones animados
+Efectos hover, pulsación y foco accesible; respeta movimiento reducido. Solo CSS.
+
+
+## v0.6.8 — Historial y paneles plegables
+- Historial de ventas: Hoy, Esta semana (lunes a hoy), Este mes, Este año, Todas las fechas y rango personalizado.
+- Búsqueda por número, cliente o fecha combinable con el período.
+- Cantidad y total de ventas visibles (total excluye anuladas).
+- Historial de ventas y panel de créditos expandibles/plegables independientemente.
+- El botón de exportación del historial conserva su comportamiento original: exporta todas las ventas de la empresa, no solo las filtradas.
+- Sin cambios en la base de datos ni en la lógica de pagos y redondeo.
+
+<h2>Actualización 0.6.9.2</h2>
+<p>Reportes filtrados para Excel (CSV) y PDF, con corrección de persistencia de la opción de impresión automática por empresa. El cambio de esa casilla se guarda inmediatamente y se verifica en SQLite.</p>
+
+<h2>Actualización v0.6.9.2 — PDF y catálogo grande</h2>
+<ul>
+<li>Los reportes filtrados se exportan a un PDF real con el selector de guardado de Windows por medio de Electron, sin ventanas emergentes.</li>
+<li>El punto de venta muestra 24 artículos por página, con navegación anterior/siguiente y búsqueda por nombre, SKU y código de barras entre todos los artículos disponibles.</li>
+<li>Se mantienen las operaciones de ventas, créditos, abonos, historial y respaldos.</li>
+</ul>
+
+
+## Novedades v0.6.10 — 1.000 artículos o más
+
+- Búsqueda rápida por descripción, SKU o código de barras, con hasta ocho sugerencias seleccionables para añadir al carrito.
+- Campo independiente para lectores de códigos de barras USB tipo teclado: escanear y Enter para añadir una unidad. También admite ingreso manual.
+- Detecta códigos duplicados y evita agregar un artículo incorrecto.
+- Conserva la paginación de 24 artículos por página de v0.6.9.2.
+- La importación masiva CSV ya estaba disponible: hasta 2.000 productos por lote, vista previa y transacción todo o nada. No reemplaza artículos existentes.
+- No se modifican las ventas, los abonos, la persistencia SQLite, los PDF ni los respaldos.

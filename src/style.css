@@ -187,3 +187,70 @@ button{max-width:100%;overflow-wrap:break-word;word-break:normal}
 
 /* Respaldos automáticos: interruptor y ayudas legibles en todas las resoluciones */
 .autoBackupPanel .backupToggle{display:inline-flex;align-items:flex-start;justify-content:flex-start;gap:12px;width:100%;margin:8px 0 18px;padding:12px 14px;background:#f5f8fc;border:1px solid #dbe4ee;border-radius:10px;cursor:pointer;text-align:left}.autoBackupPanel .backupToggle input[type="checkbox"]{flex:0 0 18px;width:18px;height:18px;min-width:18px;margin:2px 0 0;accent-color:#13806f}.autoBackupPanel .backupToggle span{display:flex;flex-direction:column;align-items:flex-start;gap:4px;flex:1;min-width:0}.autoBackupPanel .backupToggle strong{font-weight:700}.autoBackupPanel .backupToggle small{display:block;font-size:12px;line-height:1.5;color:#4b6075}.autoBackupPanel .backupRetention{margin:12px 0 18px;max-width:100%}.autoBackupPanel .backupRetention .hint{margin:7px 0 0;line-height:1.6;max-width:850px}.autoBackupPanel .actions{display:flex;flex-wrap:wrap;gap:8px}@media(max-width:600px){.autoBackupPanel{padding:12px}.autoBackupPanel .actions button{width:100%}}
+
+
+/* FacturaCR v0.6.6 — microinteracciones visuales. No altera lógica de negocio. */
+button:not(:disabled){
+  transition: transform 180ms cubic-bezier(.2,.8,.2,1),
+              box-shadow 180ms ease, filter 180ms ease,
+              background-color 180ms ease, border-color 180ms ease;
+  will-change: auto;
+}
+@media (hover:hover) and (pointer:fine){
+  button:not(:disabled):hover{
+    transform:translateY(-2px);
+    box-shadow:0 7px 16px rgba(17,35,63,.17);
+    filter:brightness(1.065);
+  }
+  nav button:not(:disabled):hover{
+    box-shadow:inset 3px 0 0 #53d7ad,0 4px 12px rgba(0,0,0,.12);
+    background-color:rgba(255,255,255,.10);
+  }
+  .company:not(:disabled):hover{box-shadow:0 6px 16px rgba(17,35,63,.12)}
+}
+button:not(:disabled):active{
+  transform:translateY(0) scale(.975);
+  box-shadow:0 2px 6px rgba(17,35,63,.12);
+  filter:brightness(.96);
+  transition-duration:90ms;
+}
+button:focus-visible{outline:3px solid #53bda9;outline-offset:3px}
+button:disabled{cursor:not-allowed;opacity:.58;filter:saturate(.7)}
+@media(prefers-reduced-motion:reduce){
+  button,button:not(:disabled),button:not(:disabled):active{
+    transition:none!important;animation:none!important;transform:none!important;
+  }
+}
+
+/* v0.6.7: cuadros de cobro uniformes para todos los métodos */
+.posOtherPaymentBox{border-color:#5279ae;background:#eef4fc;box-shadow:0 3px 12px rgba(45,86,145,.09)}
+.posOtherPaymentBox .posCashTitle{color:#294f86}
+.posOtherPaymentBox input{border-color:#5279ae}
+.posOtherPaymentBox input:focus{outline:3px solid rgba(82,121,174,.20)}
+.posOtherPaymentBox .hint{color:#465f81}
+@media(max-width:600px){.posOtherPaymentBox{padding:14px}}
+
+/* v0.6.8: filtros y paneles plegables */
+.historySectionHeader{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.historySectionHeader h3{margin:0}.historySectionHeader .hint{margin:5px 0}
+.salesHistoryFilters{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}.salesHistoryFilters label{min-width:0}.salesHistoryFilters input,.salesHistoryFilters select{width:100%;min-width:0}
+.historySummary{padding:12px 14px;margin:4px 0 14px;background:#f1f8f7;border:1px solid #cfe8e2;border-radius:10px;color:#205447}.historySummary strong{margin-left:5px}.historySummary small{color:#607a75}
+@media(max-width:650px){.salesHistoryFilters{grid-template-columns:1fr}.historySectionHeader>button{width:100%}}
+
+/* Navegación del catálogo para cientos o miles de artículos */
+.posCatalogPager{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:.87rem;color:var(--text-secondary,#53657a)}
+.posCatalogPager .actions{margin:0;display:flex;gap:8px}
+.posCatalogPager button{min-width:105px}
+@media(max-width:560px){.posCatalogPager{align-items:stretch}.posCatalogPager .actions{justify-content:space-between}}
+
+/* v0.6.10: búsqueda rápida y lector de códigos (sin dependencias adicionales) */
+.posQuickTools{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.8fr);gap:18px;margin-bottom:12px;align-items:start}
+.posQuickTools .field{margin-bottom:0}.posQuickSearch,.posQuickScan{min-width:0}
+.posQuickScan{border:1px solid #d8e9e8;background:#f5fbfa;border-radius:12px;padding:14px}
+.posQuickScan button{width:100%}.posQuickScan .hint{margin-bottom:0}
+.posSuggestions{border:1px solid #dce6ef;border-radius:10px;overflow:hidden;margin-top:8px;background:white;box-shadow:0 6px 14px #10204012}
+.posSuggestions>.hint{padding:8px 12px;margin:0;background:#f5f8fc}
+button.posSuggestion{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;border-radius:0;border-bottom:1px solid #eaf0f5;background:white;color:#22354c;padding:9px 12px;box-shadow:none;transform:none}
+button.posSuggestion:last-child{border-bottom:0}button.posSuggestion:hover{background:#e9f6f1;transform:none}
+.posSuggestion span{min-width:0}.posSuggestion strong{display:block;overflow-wrap:anywhere}.posSuggestion small{display:block;margin-top:3px;color:#607185}.posSuggestion b{white-space:nowrap}
+@media(max-width:850px){.posQuickTools{grid-template-columns:1fr}}

@@ -1,1 +1,0 @@
-FacturaCR 0.6.3: personalización por empresa y tiquetes térmicos vía impresión Electron/Windows. Probar con impresora instalada y tamaños de papel configurados en Windows. No incluye ESC/POS.

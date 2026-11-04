@@ -1,1 +1,0 @@
-Tiquete: datos de empresa, número interno de venta, datos del cliente y campos FE solo si existen realmente. Los consecutivos y claves de Hacienda NO se generan ni inventan: requieren integración futura con Hacienda. Migración SQLite no destructiva. Respaldar antes de actualizar.

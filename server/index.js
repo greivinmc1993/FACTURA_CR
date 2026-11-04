@@ -114,6 +114,12 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
   addColumn('sales','fe_consecutivo',"TEXT NOT NULL DEFAULT ''");
   addColumn('sales','fe_clave',"TEXT NOT NULL DEFAULT ''");
   addColumn('sales','fe_estado',"TEXT NOT NULL DEFAULT ''");
+  // Preferencias de impresión guardadas en SQLite para incluirlas en los respaldos.
+  db.exec(`CREATE TABLE IF NOT EXISTS company_ticket_settings (
+    company_id INTEGER PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+    settings_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
   // Los códigos internos se validan por empresa en las operaciones nuevas.
   }
   migrateDatabase();
@@ -131,6 +137,28 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       }
     }
   }
+  app.get('/api/companies/:companyId/ticket-settings',(req,res)=>{
+    const companyId=Number(req.params.companyId);
+    if(!Number.isSafeInteger(companyId)||companyId<1)return res.status(400).json({error:'Empresa inválida.'});
+    const row=db.prepare('SELECT settings_json FROM company_ticket_settings WHERE company_id=?').get(companyId);
+    if(!row)return res.json({saved:false,settings:null});
+    try{return res.json({saved:true,settings:JSON.parse(row.settings_json)})}
+    catch{return res.status(500).json({error:'Configuración de impresión dañada.'})}
+  });
+  app.put('/api/companies/:companyId/ticket-settings',(req,res)=>{
+    const companyId=Number(req.params.companyId);
+    if(!Number.isSafeInteger(companyId)||companyId<1||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId))return res.status(404).json({error:'Empresa no encontrada.'});
+    const settings=req.body;
+    if(!settings||typeof settings!=='object'||Array.isArray(settings))return res.status(400).json({error:'Configuración inválida.'});
+    const raw=JSON.stringify(settings);
+    if(raw.length>450000||typeof settings.logo!=='string'||settings.logo.length>380000)return res.status(400).json({error:'Configuración demasiado grande o logotipo inválido.'});
+    try{
+      db.prepare(`INSERT INTO company_ticket_settings(company_id,settings_json,updated_at)
+        VALUES(?,?,CURRENT_TIMESTAMP) ON CONFLICT(company_id) DO UPDATE SET
+        settings_json=excluded.settings_json,updated_at=CURRENT_TIMESTAMP`).run(companyId,raw);
+      return res.json({ok:true});
+    }catch(e){return res.status(500).json({error:'No se pudieron guardar los ajustes: '+e.message})}
+  });
   // Automatic backups are stored outside the SQLite file, using SQLite's online backup API.
   const automaticDir=join(dataDir,'automatic-backups');
   const backupConfigPath=join(dataDir,'automatic-backup-settings.json');
@@ -212,7 +240,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       if(!res.headersSent)res.status(500).json({error:'No se pudo crear el respaldo.'});
     }
   });
-  app.get('/api/health',(_req,res)=>res.json({ok:true,version:'0.6.4',backups:true}));
+  app.get('/api/health',(_req,res)=>res.json({ok:true,version:'0.6.5',backups:true}));
   app.get('/api/backups/status',(_req,res)=>{
     try {
       const fs=statfsSync(dataDir);
@@ -701,11 +729,15 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     try {
       const companyId=saleCompany(req),saleId=Number(req.params.saleId);
       const method=String(req.body?.method||'');
-      const amount=Math.round(cents(req.body?.amount)/100)*100;
-      if(!paymentLabels.includes(method)||amount<=0)throw Error('Selecciona un método y un importe positivo.');
+      const requestedAmount=Math.round(cents(req.body?.amount)/100)*100;
+      if(!paymentLabels.includes(method)||requestedAmount<=0)throw Error('Selecciona un método y un importe positivo.');
       const result=db.transaction(()=>{
         const sale=db.prepare('SELECT * FROM sales WHERE id=? AND company_id=?').get(saleId,companyId);
         if(!sale||sale.status!=='activa'||sale.sale_type!=='credito')throw Error('La venta a crédito no está activa.');
+        // Permite liquidar el último colón visible aunque la base antigua conserve céntimos.
+        const settle=req.body?.settle_balance===true;
+        if(settle && requestedAmount!==Math.round(sale.balance_cents/100)*100)throw Error('El saldo cambió. Actualiza la venta.');
+        const amount=settle?sale.balance_cents:requestedAmount;
         if(sale.balance_cents<=0||amount>sale.balance_cents)throw Error('El abono supera el saldo pendiente.');
         db.prepare('INSERT INTO sale_payments(sale_id,method,amount_cents) VALUES (?,?,?)').run(saleId,method,amount);
         db.prepare('UPDATE sales SET paid_cents=paid_cents+?,balance_cents=balance_cents-? WHERE id=?').run(amount,amount,saleId);

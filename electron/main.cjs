@@ -1,4 +1,5 @@
-const {app, BrowserWindow, Menu, ipcMain} = require('electron');
+const {app, BrowserWindow, Menu, ipcMain, dialog} = require('electron');
+const fs=require('node:fs/promises');
 const path = require('node:path');
 let server;
 let mainWindow;
@@ -19,6 +20,23 @@ ipcMain.handle('facturacr:print-ticket',async(event,html,settings={})=>{
   return await new Promise(resolve=>printWindow.webContents.print({silent,deviceName:printerName||undefined,copies,printBackground:true,margins:{marginType:'none'}},(success,reason)=>resolve({success,cancelled:!success&&/cancel/i.test(String(reason)),error:success?'':reason||'Impresión cancelada o fallida'})));
  }catch(error){return {success:false,error:String(error.message||error)}}
  finally{if(!printWindow.isDestroyed())printWindow.destroy()}
+});
+// Genera un PDF real desde una ventana aislada, sin ventanas emergentes del navegador.
+ipcMain.handle('facturacr:save-sales-pdf',async(event,html,filename)=>{
+ if(event.sender!==mainWindow?.webContents)return {success:false,error:'Ventana no autorizada'};
+ if(typeof html!=='string'||html.length>5000000)return {success:false,error:'Reporte inválido o demasiado grande'};
+ const safeName=String(filename||'FacturaCR_reporte.pdf').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120).replace(/\.pdf$/i,'')+'.pdf';
+ const reportWindow=new BrowserWindow({show:false,width:1120,height:800,parent:mainWindow,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
+ try{
+  const result=await dialog.showSaveDialog(mainWindow,{title:'Guardar reporte de ventas como PDF',defaultPath:path.join(app.getPath('documents'),safeName),filters:[{name:'Archivo PDF',extensions:['pdf']}]});
+  if(result.canceled||!result.filePath)return {success:false,cancelled:true};
+  await reportWindow.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html));
+  await reportWindow.webContents.executeJavaScript('document.fonts.ready.then(()=>true)');
+  const pdf=await reportWindow.webContents.printToPDF({pageSize:'A4',landscape:true,printBackground:true,margins:{top:0.5,bottom:0.5,left:0.5,right:0.5}});
+  await fs.writeFile(result.filePath,pdf);
+  return {success:true,path:result.filePath};
+ }catch(error){return {success:false,error:String(error.message||error)}}
+ finally{if(!reportWindow.isDestroyed())reportWindow.destroy()}
 });
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);

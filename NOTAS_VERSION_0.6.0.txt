@@ -1,0 +1,15 @@
+FacturaCR v0.6.0 - POS interno en pruebas
+
+Incluye: carrito, ventas de contado y a credito con saldo pendiente, pagos combinados,
+calculo de IVA y descuento, descuento atomico de existencias, historial, detalles,
+anulacion con motivo y reingreso de inventario, exportacion CSV.
+
+Limitaciones deliberadas:
+- Solo articulos con precios CRC. No convertir USD con un tipo de cambio arbitrario.
+- El pago en efectivo registra el importe aplicado a la venta; el vuelto es informativo.
+- Los abonos posteriores, vencimientos y estado de cuentas por cobrar quedan pendientes.
+- No emite factura electronica, tiquete fiscal ni XML de Hacienda.
+- La anulacion interna NO equivale a una nota de credito electronica.
+- No probado con instalador de Windows; utilizar exclusivamente datos de prueba.
+
+Antes de probar: crear respaldo en la v0.5.15 que funciona.

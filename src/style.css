@@ -1,0 +1,159 @@
+*{box-sizing:border-box}body{margin:0;font:16px system-ui,Arial,sans-serif;background:#f5f7fb;color:#18253b}.layout{display:flex;min-height:100vh}aside{width:255px;background:#11233f;color:white;padding:30px 22px;flex-shrink:0}h1{font-size:27px;margin:0 0 5px}h1 span{color:#53d7ad}aside small{color:#b5c7df}nav{display:grid;gap:21px;margin-top:55px}nav span{color:#a8b7cd;font-size:14px}main{width:100%;padding:42px;max-width:1250px;margin:auto}header h2{font-size:30px;margin:0}header p{color:#66748a}.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:35px}.card{background:white;border-radius:16px;padding:27px;box-shadow:0 8px 30px #1020400c}.card h3{margin-top:0}label{display:grid;gap:8px;margin-bottom:18px;font-weight:600;font-size:14px}input{padding:13px;border:1px solid #ccd4df;border-radius:9px;font:inherit}button{background:#147e70;color:white;border:0;border-radius:9px;padding:13px 16px;cursor:pointer;font:inherit}.company{display:flex;flex-direction:column;align-items:start;width:100%;background:#f3f7fa;color:#21334d;margin:10px 0;text-align:left}.company.active{outline:2px solid #147e70}.company small{color:#68778b;margin-top:4px}.warning{color:#805d13;background:#fff5d9;padding:17px;border-radius:10px;margin-top:30px}@media(max-width:760px){.layout{display:block}aside{width:100%;padding:20px}nav{margin-top:20px;gap:12px}main{padding:22px}.grid{grid-template-columns:1fr}}
+/* v0.3.0 */
+nav button{display:block;width:100%;text-align:left;background:transparent;border:0;color:inherit;padding:12px;cursor:pointer;border-radius:8px;font:inherit}
+nav button.navactive{background:#1b4870;color:white;font-weight:700}
+.company-picker{margin-bottom:18px}
+select{width:100%;padding:10px;border:1px solid #b7c7d4;border-radius:7px;background:white;color:#182a39}
+.notice{padding:12px 16px;background:#e8f4fb;border-radius:8px;color:#164365}
+.records{max-height:580px;overflow:auto;margin-top:12px}
+.record{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid #dfe7ee}
+.record small{display:block;margin-top:5px;overflow-wrap:anywhere}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button.secondary{background:#e6edf3;color:#17344b}
+button.danger{background:#9b2e36;color:white}
+@media(max-width:850px){.record{flex-direction:column;align-items:flex-start}}
+
+/* v0.4.0: formularios tributarios e inventario */
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid #c8d2df;border-radius:8px;background:#fff;color:#18253b;font:inherit}
+textarea{resize:vertical}
+.field{min-width:0}
+.two,.three{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card h4{border-bottom:1px solid #e2eaf1;padding-bottom:8px;margin:24px 0 14px;color:#1b4961}
+.hint{font-size:12px;color:#697b8d;line-height:1.5}
+.companyrow{display:flex;gap:8px;align-items:center}
+.companyrow .company{flex:1}
+.companyrow button:disabled{opacity:.5;cursor:not-allowed}
+.photo{display:flex;align-items:center;gap:14px;margin-bottom:15px}
+.photo img{width:100px;height:100px;object-fit:cover;border-radius:12px}
+.thumb{width:58px;height:58px;object-fit:cover;border-radius:10px;flex-shrink:0}
+.recordcontent{min-width:0;flex:1}
+.recordcontent .low{color:#ad3b20;font-weight:700}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
+@media(max-width:580px){.two,.three{grid-template-columns:1fr}.companyrow{align-items:stretch;flex-direction:column}}
+
+.movementPanel{margin-top:20px}.movementHistory{overflow:auto;max-height:360px}.movementHistory table{width:100%;border-collapse:collapse}.movementHistory th,.movementHistory td{padding:9px;text-align:left;border-bottom:1px solid #ddd;white-space:nowrap}
+
+.thumbWrap{width:70px;flex-shrink:0}.thumb{width:64px;height:64px;object-fit:cover;border-radius:10px}.thumbEmpty{display:flex;align-items:center;justify-content:center;background:#edf2f6;color:#6d7a87;text-align:center;font-size:11px;padding:4px}
+
+/* v0.5.5.2: tarjetas de registros legibles en ventanas estrechas */
+.layout main{min-width:0;flex:1}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid>.card{min-width:0}
+.record{min-width:0;align-items:flex-start;flex-wrap:wrap;justify-content:flex-start}
+.recordcontent{flex:1 1 190px;min-width:170px;overflow-wrap:break-word;word-break:normal;line-height:1.5}
+.recordcontent b,.recordcontent small{display:block;white-space:normal;overflow-wrap:break-word;word-break:normal}
+.record .actions{flex:0 1 auto;max-width:100%;margin-left:auto;align-self:center}
+.record .actions button{white-space:nowrap}
+@media(max-width:1300px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:760px){.record{flex-direction:row;align-items:flex-start}.recordcontent{min-width:150px}.record .actions{width:100%;margin-left:0;justify-content:flex-start}}
+@media(max-width:400px){.recordcontent{flex-basis:100%}}
+
+
+/* v0.5.5.3 — Sistema responsive transversal.
+   Los contenedores pueden encogerse, pero los contenidos nunca se comprimen letra por letra. */
+html{min-width:320px;-webkit-text-size-adjust:100%}
+body{min-width:320px;overflow-x:hidden}
+#root{min-width:0}
+.layout{width:100%;max-width:100%;min-width:0;align-items:stretch}
+.layout>aside{min-width:0;max-width:100%;overflow-wrap:break-word}
+.layout>main{width:auto;min-width:0;max-width:100%;margin:0;overflow-wrap:break-word}
+header,section,.card,form,.field,.company-picker,.records,.movementPanel{min-width:0;max-width:100%}
+header h2,h1,h2,h3,h4{overflow-wrap:break-word;word-break:normal}
+.grid{width:100%;min-width:0;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.grid>.card{width:100%;min-width:0}
+.two,.three{min-width:0;width:100%}
+.two>*,.three>*{min-width:0;max-width:100%}
+input,textarea,select{min-width:0;max-width:100%}
+input[type=file]{overflow:hidden}
+button{max-width:100%;overflow-wrap:break-word;word-break:normal}
+.actions{min-width:0;max-width:100%;align-items:center}
+.actions button{white-space:normal;min-width:0}
+.companyrow{min-width:0;max-width:100%;flex-wrap:wrap}
+.companyrow .company{min-width:0;flex:1 1 210px;overflow-wrap:anywhere}
+.companyrow>button:not(.company){flex:0 1 auto}
+.notice,.warning,.hint{overflow-wrap:break-word;word-break:normal}
+.records{overflow-x:hidden;overflow-y:auto;scrollbar-gutter:stable}
+.record{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;row-gap:12px;align-items:start;width:100%;min-width:0}
+.record:not(:has(.thumbWrap)){grid-template-columns:minmax(0,1fr)}
+.record .thumbWrap{grid-column:1;grid-row:1;width:64px;min-width:64px}
+.record .recordcontent{grid-column:2;grid-row:1;min-width:0;max-width:100%;flex:auto;overflow-wrap:break-word;word-break:normal}
+.record:not(:has(.thumbWrap)) .recordcontent{grid-column:1}
+.recordcontent b,.recordcontent small{max-width:100%;overflow-wrap:break-word;word-break:normal;white-space:normal}
+.record .actions{grid-column:1/-1;grid-row:2;justify-content:flex-start;margin:0;align-self:start;width:100%}
+.record .actions button{white-space:normal}
+.movementHistory{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+.movementHistory table{min-width:650px;width:100%}
+.photo{flex-wrap:wrap;min-width:0}
+.photo img{max-width:100%;height:auto;aspect-ratio:1;object-fit:cover}
+@media (max-width:1500px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media (min-width:1501px){.layout>main{max-width:1600px;margin:0 auto}}
+@media (max-width:1050px){.layout>aside{width:215px;padding:24px 14px}.layout>main{padding:26px 20px}.three{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+ .layout{display:block}
+ .layout>aside{width:100%;padding:16px 18px}
+ .layout>aside nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+ .layout>aside nav button{width:auto;flex:1 1 130px;text-align:center}
+ .layout>aside nav span{flex:1 1 100%;padding:0 6px}
+ .layout>main{width:100%;padding:20px 16px}
+ .grid{margin-top:18px;gap:16px}
+ .card{padding:18px}
+ .record{flex-direction:initial}
+ .record .recordcontent{min-width:0}
+ .record .actions{margin:0;width:100%}
+ .three{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:520px){
+ .layout>main{padding:14px 10px}
+ .card{padding:15px;border-radius:12px}
+ header h2{font-size:25px}
+ .two,.three{grid-template-columns:minmax(0,1fr)}
+ .record{column-gap:10px}
+ .record .thumbWrap{width:54px;min-width:54px}
+ .record .thumb{width:54px;height:54px}
+ .actions button{flex:1 1 auto}
+ .companyrow{flex-direction:column;align-items:stretch}
+ .companyrow .company{flex:auto}
+ .companyrow>button{width:100%}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important}}
+
+/* v0.5.7: menú de navegación fijo en escritorio; contenido desplazable */
+@media (min-width:761px){.layout>aside{position:sticky;top:0;height:100vh;overflow-y:auto;align-self:flex-start;flex:0 0 255px}.layout>main{min-width:0}}
+.catalogTools{padding:12px;margin-bottom:16px;border:1px solid #d9e4ec;border-radius:10px;background:#f8fbfd}.catalogTools h4{margin:4px 0 12px}.catalogPreview{margin-top:14px}.catalogPreview table{min-width:460px}.catalogTools .actions{margin:10px 0}
+
+/* v0.5.8: confirmaciones integradas con el diseño de FacturaCR */
+.dialogOverlay{position:fixed;inset:0;z-index:9999;background:rgba(13,30,51,.60);display:grid;place-items:center;padding:18px;overflow-y:auto}
+.dialogCard{width:min(100%,460px);padding:28px;border-radius:17px;background:#fff;color:#18253b;box-shadow:0 22px 80px rgba(10,30,60,.25);font:inherit}
+.dialogCard h3{margin:12px 0 10px;color:#11233f;font-size:22px;line-height:1.25}
+.dialogCard p{margin:0;color:#4d6177;line-height:1.6;overflow-wrap:break-word}
+.dialogSymbol{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#e2f4ee;color:#147e70;font-size:24px;font-weight:700}
+.dialogActions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:25px}
+.dialogActions button{min-width:110px}
+@media(max-width:480px){.dialogCard{padding:20px}.dialogActions button{flex:1}}
+/* POS responsive */
+.salesModule{display:grid;gap:18px;min-width:0}
+.salesModule .card{min-width:0}
+.posProducts{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:10px;max-height:320px;overflow-y:auto;margin-top:12px}
+.posProducts button{text-align:left;display:flex;flex-direction:column;gap:6px;min-width:0;white-space:normal;overflow-wrap:anywhere}
+.posProducts small{font-size:.8rem}
+.posTotals{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;padding:12px 0}
+.posPayment{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,1fr) auto;gap:8px;margin:8px 0}
+.posPayment>*{min-width:0}
+@media(max-width:600px){.posPayment{grid-template-columns:1fr 1fr}.posPayment button{grid-column:1/-1}}
+
+/* POS v0.6.1: fotografías y cobro en efectivo claro */
+.posProducts button{align-items:stretch}
+.posProductVisual{height:94px;width:100%;border-radius:9px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.posProductVisual img{height:100%;width:100%;object-fit:contain}
+.posProductNoPhoto{font-size:12px;color:#65778a}
+.posCashHint{display:flex;align-items:center;color:#526779;font-size:13px;min-height:42px}
+.posCashBox{margin:14px 0;padding:20px;border:2px solid #148576;border-radius:14px;background:#e8f7f3;box-shadow:0 3px 12px rgba(15,120,104,.10)}
+.posCashTitle{display:block;font-size:17px;font-weight:800;color:#0c6055;margin-bottom:10px}
+.posCashBox input{background:white;font-size:22px;font-weight:700;border:2px solid #148576;max-width:450px}
+.posCashBox input:focus{outline:3px solid rgba(20,133,118,.22)}
+.posCashBox .hint{margin:9px 0;color:#315d56}
+.posCashResults{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;margin-top:12px}
+.posChange{font-size:19px;font-weight:700;color:#086c50}
+.posPaidSummary{padding:10px 0}
+@media(max-width:600px){.posCashBox{padding:14px}.posCashResults{flex-direction:column}}

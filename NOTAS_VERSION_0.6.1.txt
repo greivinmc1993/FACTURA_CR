@@ -1,0 +1,8 @@
+FacturaCR v0.6.1
+- Cobro en efectivo: el monto recibido se introduce en un campo resaltado y solo aparece al seleccionar Efectivo.
+- El efectivo aplicado es el mínimo entre lo recibido y el importe restante tras los pagos no efectivos; la diferencia se muestra como vuelto.
+- Pagos electrónicos no generan vuelto. Se rechaza el exceso de pagos no efectivos.
+- Fotografías de productos visibles en el selector POS.
+- Campo de medio de pago habitual retirado del formulario Clientes; se conserva el campo anterior en SQLite para compatibilidad.
+- No se modifica la base de datos ni el historial existente.
+- Pendiente de pruebas funcionales en Windows.

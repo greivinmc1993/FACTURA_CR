@@ -114,6 +114,8 @@ npm run desktop:dev</code></pre>
     <tr><td>0.5.5–0.5.15</td><td>Respaldos manuales, interfaz responsive, exportaciones CSV y correcciones.</td></tr>
     <tr><td>0.6.0–0.6.1</td><td>Punto de venta, medios de pago, historial, correcciones del vuelto y fotos.</td></tr>
     <tr><td>0.6.3</td><td>Precio con IVA incluido, carrito destacado y abonos a crédito (en pruebas).</td></tr>
+    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td><td>Planificada</td></tr>
+    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td><td>Planificada</td></tr>
   </tbody>
 </table>
 <p>Las notas históricas detalladas se conservan en los archivos <code>NOTAS_VERSION_*.txt</code> del proyecto, cuando estén disponibles.</p>
@@ -178,3 +180,6 @@ En **Ventas → Personalizar tiquete**, puedes cargar un logotipo PNG, JPEG o We
 - La programación se guarda en `data/automatic-backup-settings.json` y los archivos en `data/automatic-backups/`. El directorio `data/` está excluido del repositorio Git.
 - El programador funciona con FacturaCR abierto; al iniciar comprueba si hay una copia pendiente. No se instala una tarea independiente de Windows.
 - **Limitación:** los ajustes de impresión guardados en localStorage aún no se incluyen en las copias SQLite automáticas. Copia también los datos de usuario de Electron antes de reinstalar Windows o cambiar de equipo.
+
+### Claridad en configuración de respaldos
+La opción **Cantidad de respaldos que deseas conservar** limita el número total de archivos automáticos (1 a 365). Por ejemplo, 14 respaldos diarios equivalen aproximadamente a dos semanas; el más antiguo se elimina al superar el límite. La casilla de activación ahora está alineada con su descripción.

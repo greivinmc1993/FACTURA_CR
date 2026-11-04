@@ -1,0 +1,12 @@
+FacturaCR v0.6.3 - mejoras de impresión y ventas (versión de prueba)
+- Enumeración de impresoras Windows y selección por empresa.
+- Guardado local de ajustes de impresión por empresa: impresora, papel, copias, plantilla, datos visibles y modo silencioso.
+- Tiquete de prueba sin venta real, reimpresión y tiquete de venta anulada.
+- Impresión directa opcional solo con impresora explícitamente seleccionada; el éxito de la API no garantiza salida física.
+- Empresa predeterminada configurable desde Empresas. Se recuerda la empresa activa; la predeterminada tiene prioridad al reiniciar.
+- Ventas NUEVAS: redondeo al colón más cercano para precio base, descuento, IVA, pagos y abonos; las ventas históricas no se migran.
+- Enlace web del negocio en tiquete como texto. QR gráfico aún NO incluido.
+- El PDF puede obtenerse desde el diálogo de impresión de Windows, según impresoras instaladas.
+- El corte automático y la gaveta ESC/POS NO están implementados.
+- Los ajustes se guardan en localStorage del perfil Electron, NO en el respaldo SQLite.
+- Requiere pruebas reales en Windows con impresoras de 58 y 80 mm.

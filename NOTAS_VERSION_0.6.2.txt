@@ -1,0 +1,10 @@
+FacturaCR v0.6.2 — versión de pruebas
+
+- Precio final con IVA incluido en Artículos; cálculo automático del precio base.
+- Ventas muestran y utilizan precio base sin IVA, con IVA desglosado.
+- Migración no destructiva: los artículos anteriores mantienen su interpretación de precio anterior hasta ser editados y guardados. Al editar, se muestra su precio final calculado.
+- Carrito y total más visibles.
+- Registro de abonos posteriores a ventas a crédito desde el detalle de la venta; actualización del saldo en transacción SQLite.
+- Conserva respaldos, clientes, inventario y funciones anteriores.
+
+IMPORTANTE: Haz un respaldo antes de actualizar. Prueba con datos ficticios y verifica el cálculo y los saldos antes de operar con ventas reales. Las ventas siguen siendo registros internos, NO facturas electrónicas de Hacienda.

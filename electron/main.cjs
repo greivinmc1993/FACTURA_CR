@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu, ipcMain, dialog} = require('electron');
+const {app, BrowserWindow, Menu, ipcMain, dialog, shell} = require('electron');
 const fs=require('node:fs/promises');
 const path = require('node:path');
 let server;
@@ -22,21 +22,31 @@ ipcMain.handle('facturacr:print-ticket',async(event,html,settings={})=>{
  finally{if(!printWindow.isDestroyed())printWindow.destroy()}
 });
 // Genera un PDF real desde una ventana aislada, sin ventanas emergentes del navegador.
-ipcMain.handle('facturacr:save-sales-pdf',async(event,html,filename)=>{
+ipcMain.handle('facturacr:save-sales-pdf',async(event,html,filename,options={})=>{
  if(event.sender!==mainWindow?.webContents)return {success:false,error:'Ventana no autorizada'};
  if(typeof html!=='string'||html.length>5000000)return {success:false,error:'Reporte inválido o demasiado grande'};
  const safeName=String(filename||'FacturaCR_reporte.pdf').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120).replace(/\.pdf$/i,'')+'.pdf';
  const reportWindow=new BrowserWindow({show:false,width:1120,height:800,parent:mainWindow,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
  try{
-  const result=await dialog.showSaveDialog(mainWindow,{title:'Guardar reporte de ventas como PDF',defaultPath:path.join(app.getPath('documents'),safeName),filters:[{name:'Archivo PDF',extensions:['pdf']}]});
+  const result=await dialog.showSaveDialog(mainWindow,{title:'Guardar documento como PDF',defaultPath:path.join(app.getPath('documents'),safeName),filters:[{name:'Archivo PDF',extensions:['pdf']}]});
   if(result.canceled||!result.filePath)return {success:false,cancelled:true};
   await reportWindow.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(html));
   await reportWindow.webContents.executeJavaScript('document.fonts.ready.then(()=>true)');
-  const pdf=await reportWindow.webContents.printToPDF({pageSize:'A4',landscape:true,printBackground:true,margins:{top:0.5,bottom:0.5,left:0.5,right:0.5}});
+  const pdf=await reportWindow.webContents.printToPDF({pageSize:'A4',landscape:options?.landscape!==false,printBackground:true,margins:{top:0.5,bottom:0.5,left:0.5,right:0.5}});
   await fs.writeFile(result.filePath,pdf);
   return {success:true,path:result.filePath};
  }catch(error){return {success:false,error:String(error.message||error)}}
  finally{if(!reportWindow.isDestroyed())reportWindow.destroy()}
+});
+// Open only FacturaCR's known backups folder; the renderer cannot choose an arbitrary path.
+ipcMain.handle('facturacr:open-backups-folder',async event=>{
+ if(event.sender!==mainWindow?.webContents)return {success:false,error:'Ventana no autorizada'};
+ try{
+  const folder=path.join(app.getPath('userData'),'automatic-backups');
+  await fs.mkdir(folder,{recursive:true});
+  const error=await shell.openPath(folder);
+  return error?{success:false,error}:{success:true};
+ }catch(e){return {success:false,error:String(e.message||e)}}
 });
 app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);

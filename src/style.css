@@ -162,6 +162,31 @@ button{max-width:100%;overflow-wrap:break-word;word-break:normal}
 .posCartCard{border:2px solid #b5d9d3;box-shadow:0 8px 28px rgba(16,85,78,.09)}
 .posCartTitle{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;color:#125c53;font-size:1.35rem}
 .posCartTitle span{font-size:.8rem;border-radius:99px;background:#e4f4f0;color:#14685d;padding:6px 12px}
+
+.posCartCard{position:relative;overflow:hidden}
+.posCartCard::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:linear-gradient(90deg,#1d8a7b,#67c7b8,#b6ebe1)}
+.posCartHeader{margin-bottom:14px;padding:6px 0 4px}
+.posCartTitleMain{display:inline-flex;align-items:center;gap:8px;font-size:1.45rem;font-weight:800;color:#0e5f55}
+.posCartSubtitle{margin:4px 0 0;color:#59746d;font-size:.94rem}
+.posCartEmpty{border:1px dashed #b8d9d1;background:linear-gradient(180deg,#f6fcfb,#eef8f5);border-radius:16px;padding:20px;text-align:center;margin:10px 0 16px}
+.posCartEmpty strong{display:block;font-size:1.06rem;color:#0f5e53;margin-bottom:6px}
+.posCartTableWrap{border:1px solid #d6e8e3;border-radius:18px;overflow:visible;max-height:none;height:auto;min-width:0;background:linear-gradient(180deg,#fbfefd,#f4fbf8);box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
+.posCartTable{width:100%;border-collapse:separate;border-spacing:0}
+.posCartTable thead th{background:#eef8f4;color:#214e4a;font-size:.98rem;padding:14px 16px;border-bottom:1px solid #d7e8e2}
+.posCartTable tbody td{padding:14px 16px;vertical-align:middle;border-bottom:1px solid #e5f0ed}
+.posCartTable tbody tr:last-child td{border-bottom:none}
+.posCartRow{transition:background-color .18s ease,transform .18s ease}
+.posCartRow:hover{background:#f7fcfa}
+.posCartItemBlock{display:flex;align-items:center;gap:12px}
+.posCartItemIndex{width:30px;height:30px;border-radius:999px;background:#dff1eb;color:#116a5e;display:inline-flex;align-items:center;justify-content:center;font-weight:800;flex:0 0 30px;box-shadow:inset 0 0 0 1px #b8ddd3}
+.posCartItemName{display:block;font-size:1.04rem;color:#183348}
+.posCartItemHint{display:block;margin-top:4px;color:#6a817b;font-size:.78rem}
+.posCartQtyInput{width:96px!important;min-width:96px;height:44px;border:1px solid #b9d7d1;border-radius:12px;background:#fff;font-weight:700;text-align:center;box-shadow:0 2px 8px rgba(16,85,78,.05)}
+.posCartQtyInput:focus{outline:3px solid rgba(83,189,169,.25);border-color:#58a995}
+.posCartPriceCell{text-align:left}
+.posCartLineTotal{display:inline-block;font-size:1.08rem;color:#0c5f54;background:#e6f6f1;border:1px solid #c7e5dc;border-radius:999px;padding:8px 14px;min-width:110px;text-align:center;font-variant-numeric:tabular-nums}
+.posCartActionCell .danger{min-width:110px;border-radius:12px;font-weight:700}
+@media(max-width:760px){.posCartTable thead{display:none}.posCartTable,.posCartTable tbody,.posCartTable tr,.posCartTable td{display:block;width:100%}.posCartTable tbody{padding:12px}.posCartRow{border:1px solid #d7e9e3;border-radius:16px;background:#fff;margin-bottom:12px;padding:4px 0;box-shadow:0 5px 14px rgba(17,35,63,.06)}.posCartTable tbody td{border:none;padding:10px 14px}.posCartTable tbody td::before{display:block;font-size:.74rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#6b7d87;margin-bottom:4px}.posCartTable tbody td:nth-child(1)::before{content:"Artículo"}.posCartTable tbody td:nth-child(2)::before{content:"Cantidad"}.posCartTable tbody td:nth-child(3)::before{content:"Precio"}.posCartTable tbody td:nth-child(4)::before{content:"Acción"}.posCartActionCell .danger{width:100%}.posCartQtyInput{width:100%!important;min-width:0}.posCartLineTotal{width:100%}}
 .posTotals{display:grid;gap:0;border:1px solid #d5e5e4;border-radius:14px;background:#f5faf9;padding:8px 18px;margin:18px 0;position:relative}
 .posTotals>div{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 2px;border-bottom:1px solid #dfe9e8;flex-wrap:wrap}
 .posTotals>div strong{font-variant-numeric:tabular-nums;font-size:1.08rem}
@@ -254,3 +279,297 @@ button.posSuggestion{display:flex;justify-content:space-between;align-items:cent
 button.posSuggestion:last-child{border-bottom:0}button.posSuggestion:hover{background:#e9f6f1;transform:none}
 .posSuggestion span{min-width:0}.posSuggestion strong{display:block;overflow-wrap:anywhere}.posSuggestion small{display:block;margin-top:3px;color:#607185}.posSuggestion b{white-space:nowrap}
 @media(max-width:850px){.posQuickTools{grid-template-columns:1fr}}
+
+/* v0.6.13: vista previa responsive, sin scroll horizontal ni encabezados truncados. */
+.bulkPreview{min-width:0;max-width:100%}
+.bulkPreviewList{margin-top:12px;display:grid;gap:9px;max-height:420px;overflow-y:auto;overflow-x:hidden}
+.bulkPreviewItem{display:grid;grid-template-columns:minmax(145px,1fr) minmax(0,2fr);gap:16px;padding:12px 14px;background:#fff;border:1px solid #e0e8ee;border-radius:10px;min-width:0;align-items:center}
+.bulkProduct{min-width:0}.bulkProduct strong{display:block;overflow-wrap:anywhere;color:#193449}.bulkProduct small{display:block;margin-top:5px;color:#5b6c7c;overflow-wrap:anywhere}
+.bulkChanges{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;min-width:0}
+.bulkChanges>div{min-width:0;display:flex;flex-direction:column;gap:4px}.bulkChanges span{font-size:12px;font-weight:600;color:#5d7081}.bulkChanges strong{font-size:13px;font-weight:650;color:#163b43;overflow-wrap:anywhere}.bulkCabysValue{font-variant-numeric:tabular-nums;word-break:break-all}
+@media(max-width:700px){.bulkPreviewItem{grid-template-columns:minmax(0,1fr);gap:9px}.bulkChanges{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}}
+
+/* FacturaCR 0.6.14 · resumen de existencias y filtros de movimientos */
+.inventoryDashboard{margin:14px 0;padding:16px;border:1px solid var(--border,#dce3ea);border-radius:14px;background:var(--surface,#f8fafc)}
+.inventoryDashboard h4{margin:0 0 5px}.inventoryDashboardHead .hint{margin:0 0 12px}
+.inventoryFilterCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.inventoryFilterCard{display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;padding:12px 14px;text-align:left;border:1px solid #cbd5e1;border-radius:11px;background:#fff;color:#1b3346;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.inventoryFilterCard strong{font-size:1.5rem}.inventoryFilterCard:hover{transform:translateY(-2px);box-shadow:0 4px 12px #192f4717}
+.inventoryFilterCard.inventoryFilterActive{outline:2px solid #087b70;outline-offset:1px}.inventoryFilterCard.inventoryDanger strong,.stockOut{color:#b42332!important}.inventoryFilterCard.inventoryWarning strong{color:#a86200}
+.movementFilters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:10px 0}.movementFilters .field{min-width:0}.movementFilters input,.movementFilters select{width:100%;max-width:100%;box-sizing:border-box}
+@media(max-width:760px){.inventoryFilterCards{grid-template-columns:repeat(2,minmax(0,1fr))}.movementFilters{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.inventoryFilterCard{transition:none}.inventoryFilterCard:hover{transform:none}}
+
+
+/* v0.6.15: marca visual y selector rápido de empresa en la barra lateral */
+.brandPanel{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.brandMark{width:48px;height:48px;border-radius:15px;background:linear-gradient(180deg,#173764,#0d2546);display:grid;place-items:center;box-shadow:0 8px 18px rgba(0,0,0,.16);overflow:hidden;flex-shrink:0}
+.brandMark img{width:36px;height:36px;object-fit:contain;display:block}
+.brandPanel h1{margin:0 0 2px;font-size:27px;line-height:1}
+.brandPanel small{text-transform:uppercase;letter-spacing:.16em;font-size:11px;color:#c9d7ea}
+.sidebarCompanyCard{margin-top:16px;margin-bottom:22px;padding:11px;border:1px solid rgba(116,149,190,.22);border-radius:16px;background:linear-gradient(180deg,rgba(22,44,75,.98),rgba(13,33,60,.98));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.sidebarEyebrow{margin:0 0 9px;color:#9fb4d2;text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:800}
+.sidebarCompanyControl{position:relative;display:flex;align-items:center;gap:10px;padding:10px 38px 10px 10px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(163,187,214,.16);min-height:58px}
+.sidebarCompanyAvatar{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#7f91a9;color:#fff;font-weight:800;font-size:16px;flex-shrink:0}
+.sidebarCompanyInfo{min-width:0;display:flex;flex-direction:column;gap:2px;flex:1}
+.sidebarCompanyInfo strong,.sidebarCompanyInfo small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebarCompanyInfo strong{color:#fff;font-size:14px}
+.sidebarCompanyInfo small{color:#b9c8dc;font-size:11px}
+.sidebarCompanyChevron{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:18px;color:#cfe1f4;pointer-events:none}
+.sidebarCompanySelect{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.sidebarLinkButton{margin-top:8px;background:transparent;color:#cfe1f4;padding:7px 9px;border-radius:10px;border:1px dashed rgba(163,187,214,.18);text-align:left;width:100%;font-size:14px}
+.sidebarLinkButton:hover{background:rgba(255,255,255,.07)}
+.company-picker{display:none}
+@media(max-width:760px){.brandPanel{margin-bottom:12px}.sidebarCompanyCard{margin:14px 0 20px}}
+
+
+/* v0.6.16: empresas en formato de perfiles, manteniendo el estilo del proyecto */
+.companiesWorkspace{display:grid;gap:18px;margin-top:24px}
+.companiesHero{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}.companiesHero h3{margin:2px 0 6px;font-size:33px;color:#11233f}.companiesOverline{margin:0;color:#426ad1;text-transform:uppercase;letter-spacing:.14em;font-size:11px;font-weight:800}.companiesHero .hint{margin:0;max-width:760px}.companiesInlineNotice{padding:14px 16px;border-radius:12px;border:1px solid #d8e3ee;background:#eef5fb;color:#36516d}.companyProfilesGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}.companyProfileCard{background:#fff;border:1px solid #dce6f0;border-radius:18px;padding:16px;box-shadow:0 8px 28px rgba(16,32,64,.06);display:flex;flex-direction:column;gap:14px;min-height:205px;text-align:left}.companyProfileCard.isSelected{border-color:#8fb3ff;box-shadow:0 0 0 2px rgba(66,106,209,.10),0 10px 24px rgba(66,106,209,.08)}.companyProfileHeader{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.companyProfileAvatar{width:42px;height:42px;border-radius:13px;background:#71859f;color:#fff;display:grid;place-items:center;font-size:20px;font-weight:800;flex-shrink:0}.companyProfileBadge{padding:4px 8px;border-radius:999px;background:#e3f4e7;color:#187a5f;font-size:11px;font-weight:700}.companyProfileBody{display:grid;gap:5px;padding-bottom:14px;border-bottom:1px solid #e6edf4;min-width:0}.companyProfileBody strong{font-size:20px;color:#172942;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.companyProfileBody small{font-size:13px;color:#708196;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.companyProfileFooter{display:grid;gap:10px;margin-top:auto}.companyProfileFooter>.secondary{width:100%;background:#f8fbff;border:1px solid #d5e0ee}.companyProfileFooter .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.companyProfileFooter .actions button{width:100%}.companyAddCard{align-items:center;justify-content:center;border:2px dashed #d0def0;background:#f9fbff;color:#355786}.companyAddCard span{width:50px;height:50px;border-radius:15px;display:grid;place-items:center;background:#eaf1fd;font-size:28px;margin-bottom:2px}.companyAddCard strong{font-size:18px}.companyAddCard small{color:#708196;max-width:210px}.companyFormArea{margin-top:8px}.companyHelpCard{display:grid;align-content:start}.companyHelpList{margin:8px 0 0 18px;padding:0;display:grid;gap:10px;color:#4f6277}.companyHelpList li{padding-left:2px}@media(max-width:760px){.companiesHero h3{font-size:28px}.companiesHero button{width:100%}.companyProfilesGrid{grid-template-columns:1fr}}
+
+/* FacturaCR v0.6.17 — Respaldos, estilo de tarjetas y pie de la barra lateral. */
+.layout>aside{display:flex;flex-direction:column}
+.layout>aside nav{margin-top:24px}
+.sidebarBottom{margin-top:auto;padding-top:26px;display:grid;gap:11px;min-width:0}
+.sidebarProtection{border:1px solid rgba(165,191,224,.17);border-radius:15px;background:rgba(255,255,255,.045);padding:15px 14px;display:grid;gap:8px}
+.sidebarProtection>span{color:#86baff;font-size:25px;line-height:1}
+.sidebarProtection strong{font-size:13px;line-height:1.4;color:#fff}
+.sidebarProtection p{font-size:12px;line-height:1.55;color:#aac4e5;margin:0}
+button.sidebarBackupButton{width:100%;padding:12px 10px;text-align:center;background:rgba(255,255,255,.085);color:#ecf5ff;border:1px solid rgba(162,192,231,.21);font-size:13px;font-weight:700}
+.sidebarBottom>small{text-align:center;font-size:11px;color:#83a7d9;padding-bottom:2px}
+.backupWorkspace{display:grid;gap:17px;margin:22px 0 0;max-width:100%}
+.backupHero{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.backupHero h3{margin:2px 0 6px;font-size:clamp(25px,3vw,33px);color:#11233f;line-height:1.2}
+.backupHero .hint{margin:0}
+.backupEyebrow{font-size:10px;letter-spacing:.16em;color:#3769bb;text-transform:uppercase;font-weight:800;margin:0 0 8px}
+.backupProtectionBanner{padding:18px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:linear-gradient(110deg,#ebf3ff 0%,#ecf9f3 100%);border:1px solid #d7e9e8;border-radius:15px}
+.backupShield{width:50px;height:50px;flex-shrink:0;display:grid;place-items:center;background:#dae9ff;border-radius:15px;color:#3678d0;font-size:31px}
+.backupProtectionBanner>div{flex:1;min-width:210px}
+.backupProtectionBanner h4{margin:0 0 5px;font-size:20px;color:#173a5a}
+.backupProtectionBanner div>p:last-child{margin:0;color:#546e81;line-height:1.5;font-size:12px}
+.backupStateBadge{align-self:flex-start;display:inline-flex;align-items:center;white-space:nowrap;border-radius:99px;padding:7px 10px;font-size:11px;font-weight:800}
+.backupStateBadge.enabled{background:#d8f4e5;color:#137349}
+.backupStateBadge.disabled{background:#f9e8dc;color:#95551b}
+.backupMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.backupMetric{background:#fff;padding:16px;border-radius:14px;box-shadow:0 8px 24px rgba(16,32,64,.06);border:1px solid #e0e8f1;display:flex;flex-direction:column;gap:8px;min-width:0}
+.backupMetric small{font-size:11px;color:#65809d;font-weight:750}
+.backupMetric strong{font-size:clamp(16px,1.7vw,21px);color:#183554;white-space:normal;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.backupMetric span{font-size:11px;color:#7890a8}
+.backupColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:stretch}
+.backupColumns .card{padding:18px;box-shadow:0 8px 24px rgba(16,32,64,.05);border:1px solid #e0e8f1;min-width:0}
+.backupCardHeading{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:15px}
+.backupCardHeading h4{border:0;margin:0 0 4px;padding:0;font-size:17px;color:#182f4e}
+.backupCardHeading .hint{margin:0;font-size:11px}
+.backupCardHeading>span{color:#40617f;font-size:22px}
+.backupSwitch{display:flex;align-items:center;gap:10px;border:1px solid #e0e7f2;background:#f4f7fd;padding:12px;border-radius:10px;margin:0 0 16px;cursor:pointer}
+.backupSwitch input[type=checkbox]{width:18px;height:18px;min-width:18px;accent-color:#276de5;margin:0}
+.backupSwitch span{display:grid;gap:4px;min-width:0}
+.backupSwitch strong{font-size:13px}
+.backupSwitch small{font-weight:400;font-size:11px;line-height:1.4;color:#6d8199}
+.backupSettingsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.backupSettingsGrid .field{margin:0}
+.backupSettingsGrid .field:last-child{grid-column:1/-1;max-width:220px}
+.backupSettingsGrid label{font-size:12px}
+.backupSettingsGrid input,.backupSettingsGrid select{padding:10px 11px;font-size:13px}
+.backupDirectory{background:#f5f8fc;border:1px solid #e0e9f4;border-radius:10px;padding:13px;margin-top:15px;min-width:0}
+.backupDirectory>small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:#687f9c;margin-bottom:6px}
+.backupDirectory code{display:block;overflow-wrap:anywhere;word-break:break-word;color:#43678d;font-size:11px;line-height:1.5;margin-bottom:12px}
+.backupDirectory .actions{margin-bottom:6px}
+.backupDirectory button{padding:9px 12px;font-size:12px}
+.backupDirectory .hint{margin:10px 0 0}
+.backupSettingsActions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.backupSettingsActions button{font-size:12px;padding:10px 13px}
+button.backupRefresh{background:transparent;color:#2563cb;font-size:12px;font-weight:750;padding:8px}
+.backupFileList{display:grid;gap:9px;max-height:390px;overflow-y:auto;padding-right:3px;min-width:0}
+.backupFileRow{display:flex;align-items:flex-start;gap:10px;border:1px solid #dde8f3;border-radius:10px;padding:10px;background:#fff;min-width:0}
+.backupFileIcon{width:33px;height:33px;border-radius:9px;background:#eaf2ff;color:#3d75d8;font-size:21px;display:grid;place-items:center;flex-shrink:0}
+.backupFileRow div{min-width:0;display:grid;gap:5px}
+.backupFileRow strong{font-size:11px;color:#26486d;overflow-wrap:anywhere;font-weight:650}
+.backupFileRow small{font-size:11px;color:#758da6;overflow-wrap:anywhere}
+.backupEmpty{border:1px dashed #cfdeee;background:#f9fbfe;border-radius:12px;padding:24px 12px;text-align:center;color:#435c78}
+.backupEmpty .hint{margin:7px 0 0}
+.backupAdvanced details{background:white;border:1px solid #dce7f2;border-radius:12px;padding:12px 14px}
+.backupAdvanced summary{font-size:13px;color:#304f6b;font-weight:700;cursor:pointer}
+.backupAdvanced details p{font-size:12px;color:#5f7186;line-height:1.6}
+.backupFooterInfo{margin:0;padding:13px 15px;background:#edf5ff;border:1px solid #dce8fb;color:#53708d;border-radius:11px;font-size:11px;line-height:1.6}
+@media(max-width:1150px){.backupColumns{grid-template-columns:minmax(0,1fr)}.backupMetrics{gap:9px}}
+@media(max-width:760px){.layout>aside{display:block}.layout>aside nav{margin-top:16px}.sidebarBottom{margin-top:18px}.backupMetrics{grid-template-columns:1fr}.backupSettingsGrid{grid-template-columns:1fr}.backupSettingsGrid .field:last-child{grid-column:1;max-width:unset}.backupHero>button{width:100%}}
+@media(prefers-reduced-motion:reduce){.backupWorkspace *{scroll-behavior:auto}}
+
+
+/* FacturaCR v0.6.18 — refinamiento del lateral e iconos de navegación */
+.brandText{min-width:0}.brandPanel h1{font-size:24px;letter-spacing:-.02em}.brandPanel small{font-size:10px;letter-spacing:.17em}.brandPanel{gap:10px}.sidebarCompanyCard{padding:13px 11px 12px;border-radius:18px}.sidebarCompanyControl{padding:12px 38px 12px 12px;min-height:64px;background:rgba(255,255,255,.10)}.sidebarCompanyAvatar{width:38px;height:38px;border-radius:12px;background:linear-gradient(180deg,#8aa1c1,#6f83a3)}.sidebarCompanyInfo strong{font-size:15px;color:#ffffff;font-weight:800}.sidebarCompanyInfo small{font-size:11px;color:#adc6ea}.sidebarLinkButton{color:#9fc5ff;border-color:rgba(159,197,255,.18)}.sidebarLinkButton:hover{color:#d9ebff}.sidebarNavTitle{margin:4px 0 10px;color:#93aacb;text-transform:uppercase;letter-spacing:.18em;font-size:10px;font-weight:800}.layout>aside nav{margin-top:0;display:grid;gap:6px}.layout>aside nav>button{display:flex;align-items:center;gap:12px;justify-content:flex-start;text-align:left;padding:12px 14px;border-radius:14px;font-size:15px;font-weight:650;background:transparent;color:#f2f6ff;border:1px solid transparent}.layout>aside nav>button:hover{background:rgba(255,255,255,.04)}.layout>aside nav>button.navactive{background:#214f81;border-color:#3f74ac;box-shadow:inset 0 0 0 1px rgba(116,177,255,.08)}.navIcon{display:inline-grid;place-items:center;width:18px;min-width:18px;font-size:15px;line-height:1;color:#9bc2ff;opacity:.95}.layout>aside nav>button.navactive .navIcon{color:#d7ecff}.layout>aside nav>span{margin-top:10px;padding-left:14px;color:#aec4df;line-height:1.55}.sidebarBottom{gap:13px}.sidebarProtection strong{font-size:14px}.sidebarBackupButton{display:flex;align-items:center;justify-content:center;gap:10px}.sidebarBackupButton .navIcon{width:auto;min-width:0;color:#ecf5ff}.sidebarBottom>small{font-size:10px;letter-spacing:.04em}.brandMark{width:50px;height:50px}.brandMark img{width:37px;height:37px}
+
+
+/* FacturaCR 0.6.19 — formulario de empresas en modal, selector compacto. */
+.sidebarCompanyCard{padding:10px 11px;border-radius:15px;margin-top:11px;margin-bottom:20px}
+.sidebarEyebrow{margin:0 0 8px;font-size:10px}
+.sidebarCompanyControl{min-height:52px;padding:7px 35px 7px 9px;gap:9px;border-radius:11px}
+.sidebarCompanyAvatar{width:32px;height:32px;border-radius:9px;font-size:15px}
+.sidebarCompanyInfo strong{font-size:13px;letter-spacing:-.01em;color:#ecf6ff}
+.sidebarCompanyInfo small{font-size:10px;color:#a8c2e5}
+.sidebarCompanyChevron{right:11px;font-size:14px}
+.sidebarLinkButton{font-size:12px;padding:7px 9px;margin-top:7px;border-radius:9px;color:#b1d2ff}
+.companyModalOverlay{position:fixed;inset:0;z-index:15000;background:rgba(11,25,44,.64);display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto}
+.companyModal{background:#fff;color:#1c3149;width:min(100%,610px);max-height:min(92vh,840px);overflow:hidden;display:flex;flex-direction:column;border-radius:19px;box-shadow:0 25px 85px rgba(7,27,58,.35);min-width:0}
+.companyModalHeader{padding:22px 25px 17px;border-bottom:1px solid #e2e8f0;display:flex;gap:15px;justify-content:space-between;align-items:flex-start}
+.companyModalHeader .companiesOverline{font-size:10px;margin-bottom:9px;color:#386ac9}
+.companyModalHeader h2{margin:0 0 5px;font-size:24px;line-height:1.16;color:#142d4c}
+.companyModalHeader p:last-child{margin:0;font-size:12px;color:#7186a0;line-height:1.45}
+button.companyModalClose{display:grid;place-items:center;flex:0 0 35px;width:35px;height:35px;border:1px solid #d9e3f0;background:#fff;color:#6b819e;border-radius:10px;font-size:26px;line-height:1;padding:0}
+.companyModalForm{display:flex;flex-direction:column;min-height:0;flex:1}
+.companyModalFields{padding:22px 25px 5px;overflow-y:auto;min-height:0;overscroll-behavior:contain}
+.companyModalFields .field{font-size:12px;font-weight:650;color:#556f8d;margin-bottom:13px;gap:6px}
+.companyModalFields input,.companyModalFields textarea{font-size:14px;padding:11px;border-radius:9px;border:1px solid #d6e0ed;color:#1c3149;background:#fff}
+.companyModalFields input:focus,.companyModalFields textarea:focus{outline:2px solid #a6c4fa;outline-offset:1px;border-color:#6490e6}
+.companyModalFields input::placeholder,.companyModalFields textarea::placeholder{color:#a0afc3}
+.companyModalTwo{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.companyModalInfo{border:1px solid #d6e6fc;background:#edf4ff;padding:12px;border-radius:10px;font-size:11px;color:#597395;line-height:1.6;margin:5px 0 15px}
+.companyModalFooter{flex-shrink:0;display:flex;justify-content:flex-end;gap:10px;padding:15px 25px;border-top:1px solid #e2e8f0;background:#fff}
+.companyModalFooter button{font-size:13px;font-weight:700;padding:10px 16px}
+@media(max-width:560px){.companyModalOverlay{padding:8px}.companyModal{max-height:96vh;border-radius:14px}.companyModalHeader{padding:16px}.companyModalHeader h2{font-size:21px}.companyModalFields{padding:15px}.companyModalTwo{grid-template-columns:1fr;gap:0}.companyModalFooter{padding:12px 15px}}
+@media(prefers-reduced-motion:reduce){.companyModalOverlay{scroll-behavior:auto}}
+
+/* El diálogo de confirmación debe quedar por encima de la ventana de empresa */
+.dialogOverlay{z-index:16000}
+
+.companyModalError{margin:12px 25px 0;padding:11px 13px;background:#fff0ed;border:1px solid #f1c5bd;border-radius:9px;color:#9d3026;font-size:12px}
+
+/* v0.6.20 · iconografía SVG, colores por empresa y selector lateral personalizado */
+.uiIcon{display:inline-block;vertical-align:middle;flex-shrink:0;pointer-events:none}
+.sidebarCompanyPicker{position:relative;min-width:0}
+button.sidebarCompanyControl{width:100%;max-width:none;display:flex;align-items:center;text-align:left;color:#fff;background:rgba(255,255,255,.09);border:1px solid rgba(165,195,233,.27);box-shadow:none;transition:background .18s,border-color .18s,box-shadow .18s;transform:none!important;filter:none!important}
+button.sidebarCompanyControl:hover,button.sidebarCompanyControl.menuOpened{background:rgba(255,255,255,.16);border-color:#85b4fa;box-shadow:0 0 0 2px rgba(101,160,244,.16)}
+button.sidebarCompanyControl>.uiIcon{color:#d4e8ff;transition:transform .18s}
+button.sidebarCompanyControl.menuOpened>.uiIcon{transform:rotate(180deg)}
+.sidebarCompanyAvatar,.companyProfileAvatar,.companyDropdownAvatar,.companyColorPreviewAvatar{color:white!important;box-shadow:inset 0 1px 1px rgba(255,255,255,.24),0 4px 12px rgba(0,0,0,.12)}
+.sidebarCompanyDropdown{position:absolute;z-index:100;left:0;right:0;top:calc(100% + 7px);border:1px solid #46658d;border-radius:13px;background:#203653;padding:6px;box-shadow:0 15px 32px rgba(0,0,0,.4);max-height:310px;overflow-y:auto}
+button.companyDropdownOption{width:100%;max-width:none;display:flex;align-items:center;gap:9px;color:#eef6ff;background:transparent;text-align:left;padding:9px 7px;border-radius:9px;box-shadow:none!important;transform:none!important;filter:none!important}
+button.companyDropdownOption:hover,button.companyDropdownOption.selected{background:#31527c}
+.companyDropdownAvatar{width:31px;height:31px;border-radius:9px;display:grid;place-items:center;font-weight:800;flex-shrink:0}
+.companyDropdownInfo{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.companyDropdownInfo strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px}
+.companyDropdownInfo small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;color:#b7cee8}
+.companyDropdownOption>.uiIcon{color:#93d9c0}
+.companyDropdownEmpty{font-size:12px;padding:8px;color:#d2e2f7}
+.sidebarLinkButton{display:flex;align-items:center;gap:7px}
+.layout>aside nav>button .navIcon{display:inline-grid;place-items:center}
+.layout>aside nav>button .navIcon svg{stroke:#aac9ed}
+.companyProfileFooter button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.companyColorArea{display:grid;grid-template-columns:1.15fr 1fr;gap:16px;align-items:center;margin:14px 0 15px}
+.companyColorHeading{display:block;font-size:13px;color:#244567;margin-bottom:4px}
+.companyColorArea .hint{margin:0 0 11px}
+.companyColorChoices{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+button.companyColorOption{height:33px;width:33px;padding:0;display:grid;place-items:center;border:2px solid white;border-radius:11px;box-shadow:0 0 0 1px #e1e9f3;color:#fff;flex-shrink:0}
+button.companyColorOption.isActive{box-shadow:0 0 0 3px #aac9f9,0 4px 9px #1a458026}
+.companyColorPreview{min-width:0;padding:10px;border:1px solid #dce6f1;background:#f2f6fc;border-radius:12px}
+.companyColorPreview>small{display:block;color:#5d7290;font-weight:700;margin-bottom:7px}
+.companyColorPreviewRow{display:flex;align-items:center;gap:8px;background:white;padding:9px;border:1px solid #e1e8f1;border-radius:9px;min-width:0}
+.companyColorPreviewAvatar{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-weight:800;flex-shrink:0}
+.companyColorPreviewRow>span:last-child{min-width:0;display:flex;flex-direction:column;gap:2px}
+.companyColorPreviewRow strong,.companyColorPreviewRow small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.companyColorPreviewRow strong{font-size:12px;color:#28415f}.companyColorPreviewRow small{font-size:10px;color:#71869d}
+.companyModalInfo{display:flex;align-items:center;gap:9px}
+@media(max-width:560px){.companyColorArea{grid-template-columns:1fr}}
+
+
+/* FacturaCR 0.6.21 — corrección de color activo e iconografía refinada */
+.brandPanel h1{font-size:22px;line-height:1.02}
+.brandPanel small{font-size:10px;letter-spacing:.19em;color:#d3e4ff}
+.sidebarCompanyControl{position:relative;overflow:hidden;transition:background .18s,border-color .18s,box-shadow .18s}
+.sidebarCompanyControl::after{content:'';position:absolute;inset:auto 0 0 0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);opacity:.6}
+.sidebarCompanyInfo strong{transition:color .18s ease}
+.sidebarCompanyInfo small{color:#b7cae3}
+.sidebarCompanyAvatar{background:none}
+.companyDropdownOption{border:1px solid transparent;transition:background .16s,border-color .16s}
+.companyDropdownOption.selected{box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.companyDropdownAvatar{background:none}
+.companyDropdownInfo strong{color:#f2f6ff}
+.companyProfileAvatar{background:none}
+.companyColorPreviewAvatar{background:none}
+.layout>aside nav>button{font-weight:700}
+.layout>aside nav>button .navIcon{width:20px;min-width:20px}
+.layout>aside nav>button .navIcon svg{stroke:#a9c8eb;stroke-width:1.9}
+.layout>aside nav>button.navactive .navIcon svg{stroke:#e8f4ff}
+.layout>aside nav>button:hover .navIcon svg{stroke:#d5e8ff}
+.sidebarProtection{position:relative}
+.sidebarProtectionIcon{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:9px;background:rgba(84,129,198,.16);color:#8bc0ff;border:1px solid rgba(125,168,225,.18)}
+.sidebarBackupButton .navIcon svg{stroke:#eaf4ff}
+
+
+/* FacturaCR v0.6.22 — búsqueda de clientes en ventas */
+.posClientPicker{min-width:0;display:grid;align-content:start;gap:0}
+.posClientPicker .field{margin-bottom:10px}
+.posClientPicker input[type="search"]{min-height:44px}
+.posClientMatches{margin:0 0 10px;font-size:12px;color:#536c81}
+.posSelectedClient{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#f1f8f6;border:1px solid #c1ded5;border-radius:11px;padding:10px 12px;margin-top:2px;min-width:0}
+.posSelectedClient span{min-width:0;display:grid;gap:2px}
+.posSelectedClient strong{font-size:13px;color:#125c50;overflow-wrap:anywhere}
+.posSelectedClient small{font-size:11px;color:#52786c;overflow-wrap:anywhere}
+.posSelectedClient button{flex-shrink:0;font-size:12px;padding:7px 10px}
+@media(max-width:540px){.posSelectedClient{align-items:flex-start;flex-wrap:wrap}}
+
+
+/* FacturaCR v0.6.24 — búsqueda seleccionable de clientes en POS */
+.posClientPicker{min-width:0;display:flex;flex-direction:column;gap:8px;align-self:start}
+.posClientPicker .field{margin:0;gap:7px}
+.posClientSearchHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:3px;color:#1c3b55;font-size:13px}
+.posClientSearchHeader span{background:#eaf2f9;border:1px solid #d6e6f2;border-radius:100px;padding:4px 9px;font-size:11px;color:#56718a;font-weight:600}
+.posClientPicker input[type=search]{min-height:46px;border-color:#bed2e5;box-shadow:0 2px 6px rgba(20,55,80,.03)}
+.posClientPicker input[type=search]:focus{outline:3px solid rgba(20,126,112,.15);border-color:#168577}
+.posClientSearchHint{color:#657c91;font-size:12px;line-height:1.5;margin:0}
+.posClientResults{display:grid;gap:4px;border:1px solid #d6e6ee;background:#f8fbfd;border-radius:13px;padding:6px;max-height:380px;overflow-y:auto;overscroll-behavior:contain;min-width:0}
+.posClientResults .posClientMatches{margin:2px 7px 6px;color:#52748a;font-size:12px}
+button.posClientResult{display:flex;width:100%;max-width:none;align-items:center;gap:11px;padding:10px 11px;text-align:left;border-radius:10px;border:1px solid transparent;background:#fff;color:#18354b;transform:none!important;filter:none!important;box-shadow:none!important}
+button.posClientResult:hover,button.posClientResult.isHighlighted{background:#ecf7f4;border-color:#9dd6c9}
+.posClientResultAvatar,.posClientSelectedInitial{display:grid;place-items:center;flex-shrink:0;width:38px;height:38px;border-radius:11px;background:#dcece8;color:#0b7464;font-size:16px;font-weight:800}
+.posClientResultInfo,.posClientSelectedInfo{display:grid;gap:3px;flex:1;min-width:0}
+.posClientResultInfo strong,.posClientSelectedInfo strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:#163e58}
+.posClientResultInfo small,.posClientSelectedInfo small{font-size:11px;color:#587289;overflow-wrap:anywhere}
+.posClientResultAction{color:#197a6d;font-size:11px;font-weight:750;white-space:nowrap}
+.posClientResultsMore{margin:4px 6px;font-size:11px;color:#60788c}
+.posClientSelectedCard{display:flex;align-items:center;gap:11px;min-width:0;border:1px solid #9bdbcc;border-radius:13px;background:#f0faf6;padding:12px}
+.posClientSelectedInitial{background:#1c907f;color:#fff}
+button.posClientChangeButton{font-size:12px;flex-shrink:0;padding:9px 12px}
+@media(max-width:520px){.posClientSelectedCard{flex-wrap:wrap}.posClientChangeButton{margin-left:auto}.posClientResultAction{display:none}}
+
+/* v0.6.25: la columna de condición de venta no debe estirarse al desplegar resultados de clientes */
+.posClientSaleRow{align-items:start;grid-auto-rows:min-content}
+.posClientSaleRow>.field{align-self:start;margin-bottom:0}
+.posClientSaleRow>.field select{height:46px;min-height:46px;width:100%}
+@media(max-width:580px){.posClientSaleRow{grid-template-columns:minmax(0,1fr)}}
+
+
+/* v0.6.26: cliente y condición de venta apilados; los resultados no deforman el selector */
+.posCartCard .posClientSaleStack{display:flex;flex-direction:column;align-items:stretch;gap:16px;width:100%;min-width:0;margin:12px 0 16px}
+.posCartCard .posClientSaleStack>.posClientPicker{width:100%;min-width:0;max-width:100%;align-self:stretch}
+.posCartCard .posClientSaleStack>.posClientPicker .posClientResults{width:100%;max-width:100%;box-sizing:border-box}
+.posCartCard .posClientSaleStack>.posSaleCondition{width:100%;min-width:0;max-width:100%;align-self:stretch}
+.posCartCard .posClientSaleStack>.posSaleCondition .field{display:flex;flex-direction:column;gap:8px;margin:0;min-width:0}
+.posCartCard .posClientSaleStack>.posSaleCondition select{width:100%;height:46px;min-height:46px;padding:10px 12px}
+@media(max-width:580px){.posCartCard .posClientSaleStack{gap:12px}}
+
+/* v0.6.28: Cotizaciones y proformas separadas de ventas */
+.quotesWorkspace{display:grid;gap:18px;margin:22px 0}.quotesHero{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.quotesHero h3{margin:4px 0;font-size:28px;color:#17344b}.quotesHero .hint{margin:0}.quotesGrid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(330px,.85fr);gap:18px;align-items:start}.quotesGrid>.card{min-width:0}.quoteLogoSetting{border:1px solid #dce6ee;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:9px}.quoteLogoSetting label{display:flex;gap:8px;align-items:center;margin:0}.quoteLogoSetting input{width:auto}.quoteLogoSetting img{max-width:170px;max-height:90px;object-fit:contain;align-self:start}.quoteLogoSetting small{color:#5f758d}.quoteChoices{display:grid;gap:6px;margin:-10px 0 16px;padding:7px;background:#f0f7f7;border:1px solid #d4e3e2;border-radius:10px;max-height:250px;overflow:auto}.quoteChoices button{text-align:left;display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}.quoteChoices button small{color:#506780}.quotePicked{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;margin-bottom:14px;background:#e7f6ee;border-radius:10px}.quotePicked button{margin-left:auto}.quoteManual{padding:14px;border:1px solid #cbdde4;background:#f8fbfd;border-radius:12px;margin-bottom:17px}.quoteManual h4{margin:0 0 12px}.quoteManualFields{display:grid;grid-template-columns:2fr 1fr .8fr;gap:10px}.quoteManualFields .field{margin-bottom:8px}.quoteLines{display:grid;gap:8px;margin-bottom:18px}.quoteLine{display:grid;grid-template-columns:minmax(0,1fr) 95px auto;align-items:center;gap:10px;padding:10px;border:1px solid #dbe6ec;border-radius:10px}.quoteLine div{min-width:0;overflow-wrap:anywhere}.quoteLine small{display:block;margin-top:4px;color:#526980}.quoteLine button{font-size:12px}.quoteTotal{display:flex;justify-content:space-between;gap:12px;padding:18px;background:#e1f4ed;border-radius:12px;color:#075b4c;font-weight:700}.quoteTotal strong{font-size:22px}.quoteHistory{display:grid;gap:8px;max-height:560px;overflow-y:auto}.quoteHistoryItem{display:grid;gap:6px;text-align:left;background:#f6f9fc;color:#254258;border:1px solid #dce6ef;border-radius:10px;padding:12px}.quoteHistoryItem small{color:#607a90}.quoteHistoryItem.selected{border-color:#168774;background:#edf8f3}.quoteSelected{margin-top:20px;padding:14px;background:#edf6f5;border-radius:10px}.quoteSelected h4{margin-top:0}.quoteSelected button{width:100%}@media(max-width:1050px){.quotesGrid{grid-template-columns:1fr}}@media(max-width:650px){.quoteManualFields{grid-template-columns:1fr}.quoteLine{grid-template-columns:minmax(0,1fr) 75px}.quoteLine button{grid-column:1/-1}.quotesHero>button{width:100%}}
+
+
+/* v0.6.29: cotizaciones editables y escáner debajo del buscador */
+.posQuickTools{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start}
+.posQuickScan{width:100%;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;align-items:end}
+.posQuickScan>.field{margin:0}.posQuickScan>button{width:auto;min-width:175px;align-self:end;height:45px}
+.posQuickScan>.hint{grid-column:1/-1;margin:0}
+.quoteEditorHeading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.quoteEditorHeading h3{margin:0}.quoteClientFields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.quoteClientFields .field{margin-bottom:0}.quoteFreeClient details{margin-bottom:16px;border:1px solid #dbe5ef;background:#f7fafc;padding:12px;border-radius:10px}.quoteFreeClient summary{font-weight:650;color:#345570;cursor:pointer}.quoteSelectedActions{display:grid;gap:8px}.quoteSelectedActions button{width:100%}
+@media(max-width:650px){.posQuickScan{grid-template-columns:minmax(0,1fr)}.posQuickScan>.hint{grid-column:1}.posQuickScan>button{width:100%}.quoteClientFields{grid-template-columns:1fr}}
+
+/* QA v0.6.30: validación visible de descuentos en el carrito. */
+.posDiscountError{background:#fff1ee;border:1px solid #efb8ad;border-radius:10px;color:#9a3029;padding:10px 14px;margin:8px 0 12px;font-size:13px;font-weight:650}
+.posCartPriceCell .posCartItemHint{font-size:11px;line-height:1.5}
+
+/* v0.6.30.1: el carrito crece con todos los artículos, sin el límite de 360px del historial. */
+.posCartTable{min-width:0;width:100%;table-layout:auto}
+.posCartTable thead th:first-child{border-top-left-radius:17px}
+.posCartTable thead th:last-child{border-top-right-radius:17px}
+.posCartTable tbody tr:last-child td:first-child{border-bottom-left-radius:17px}
+.posCartTable tbody tr:last-child td:last-child{border-bottom-right-radius:17px}
+@media(max-width:760px){.posCartTable{min-width:0}.posCartTableWrap{max-height:none;overflow:visible}}

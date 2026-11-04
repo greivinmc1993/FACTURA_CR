@@ -1,7 +1,7 @@
 {
   "name": "facturacr-desktop",
   "private": true,
-  "version": "0.6.10",
+  "version": "0.6.31",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm:server\" \"npm:client\"",
@@ -11,7 +11,12 @@
     "desktop:electron": "wait-on http://127.0.0.1:5173 http://127.0.0.1:3001 && electron . --dev",
     "build": "vite build",
     "desktop": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win nsis"
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "qa:unit": "node tests/qa-regresion-ventas.cjs",
+    "qa:static": "node tests/qa-estatica.cjs",
+    "qa:integration": "node --no-warnings tests/qa-integracion-local.cjs",
+    "qa:syntax": "node --check server/index.js && node --check server/xlsx.js && node --check electron/main.cjs && node --check electron/preload.cjs",
+    "test": "npm run qa:unit && npm run qa:static && npm run qa:integration && npm run qa:syntax"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
@@ -57,7 +62,14 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "FacturaCR"
+      "shortcutName": "FacturaCR",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/uninstallerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "language": "3082",
+      "displayLanguageSelector": false
     }
   },
   "allowScripts": {

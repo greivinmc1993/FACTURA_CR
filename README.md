@@ -1,9 +1,34 @@
+## FacturaCR v0.6.27 — Precio final con IVA incluido
+
+Se corrigió el redondeo al registrar ventas con productos cuyo precio incluye IVA. Antes, un artículo con precio final ₡700 e IVA 13% podía terminar con total ₡699 porque la base y el IVA se redondeaban por separado.
+
+Ahora se conserva el precio final por unidad y la diferencia de redondeo queda en el IVA de la línea: ₡619 base + ₡81 IVA = ₡700. El cálculo del carrito y el del servidor usan la misma regla. Los artículos registrados sin IVA incluido conservan la regla anterior.
+
+**Importante:** las ventas anteriores se mantienen intactas. Comprueba primero con una venta de prueba antes de generar un nuevo instalador.
+
+# FacturaCR v0.6.24 — Búsqueda rápida de clientes al vender
+
+En Ventas, el selector tradicional de clientes fue reemplazado por un buscador con resultados clicables. Busca por nombre, nombre comercial, cédula (con o sin guiones), teléfono o correo; selecciona el resultado. La búsqueda presenta hasta ocho sugerencias y permite usar flechas y Enter. El cliente seleccionado queda visible, y el botón «Cambiar» permite elegir otro. Sin seleccionar cliente se registra como consumidor final (solo venta de contado). Las ventas a crédito siguen requiriendo seleccionar un cliente.
+
+Esta actualización parte de la v0.6.23 y conserva las mejoras del instalador, respaldos y demás módulos.
+
+## Prueba rápida
+
+1. `npm install`
+2. `npm run build`
+3. `npm run desktop:dev`
+4. En Ventas, escribe parte de un nombre, haz clic en el resultado y verifica que el cliente quede seleccionado.
+5. Prueba también una cédula con y sin separadores, y el botón Cambiar.
+6. Si funciona, ejecuta `npm run dist:win` desde Windows.
+
+La información continúa almacenada en la base SQLite habitual; no reemplaces ni elimines la carpeta de datos de FacturaCR.
+
 <div align="center">
   <h1>🇨🇷 FacturaCR</h1>
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.10-blue" alt="Versión 0.6.10" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.9.2-blue" alt="Versión 0.6.9.2" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>
@@ -114,8 +139,6 @@ npm run desktop:dev</code></pre>
     <tr><td>0.5.5–0.5.15</td><td>Respaldos manuales, interfaz responsive, exportaciones CSV y correcciones.</td></tr>
     <tr><td>0.6.0–0.6.1</td><td>Punto de venta, medios de pago, historial, correcciones del vuelto y fotos.</td></tr>
     <tr><td>0.6.3</td><td>Precio con IVA incluido, carrito destacado y abonos a crédito (en pruebas).</td></tr>
-    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td></tr>
-    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td></tr>
   </tbody>
 </table>
 <p>Las notas históricas detalladas se conservan en los archivos <code>NOTAS_VERSION_*.txt</code> del proyecto, cuando estén disponibles.</p>
@@ -123,7 +146,9 @@ npm run desktop:dev</code></pre>
 <h2>🗺️ Hoja de ruta</h2>
 <table>
   <thead><tr><th>Versión</th><th>Objetivo</th><th>Estado</th></tr></thead>
-  <tbody>    
+  <tbody>
+    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td><td>Planificada</td></tr>
+    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td><td>Planificada</td></tr>
     <tr><td>0.7.0</td><td>Reportes y estadísticas</td><td>Planificada</td></tr>
     <tr><td>0.8.0</td><td>Documentos electrónicos XML y representación PDF conforme a requisitos aplicables</td><td>Planificada</td></tr>
     <tr><td>0.9.0</td><td>Firma digital, envío y consulta de respuestas de Hacienda</td><td>Planificada</td></tr>
@@ -226,3 +251,106 @@ Efectos hover, pulsación y foco accesible; respeta movimiento reducido. Solo CS
 - Conserva la paginación de 24 artículos por página de v0.6.9.2.
 - La importación masiva CSV ya estaba disponible: hasta 2.000 productos por lote, vista previa y transacción todo o nada. No reemplaza artículos existentes.
 - No se modifican las ventas, los abonos, la persistencia SQLite, los PDF ni los respaldos.
+
+
+## v0.6.11: actualización masiva segura
+En **Productos → Actualizar precios y existencias desde CSV**, exporta primero el catálogo y edítalo en Excel. Selecciona un CSV (hasta 2 MB o 2.000 filas), elige actualizar precios y/o ajustar existencias, valida la vista previa y confirma. El SKU o código de barras debe coincidir con un artículo existente. No se crean nuevos registros ni se modifica ningún artículo que no aparezca en el archivo. El lote es transaccional: si una fila falla, no se aplica nada. Se detectan cambios realizados desde la vista previa. Las diferencias de stock generan movimientos y los cambios de precio se registran en `product_bulk_price_changes`. Guarda un respaldo antes de una importación masiva.
+
+
+### v0.6.12 — IVA visible
+Al exportar artículos a CSV o XLSX ahora aparecen las columnas **Código IVA** e **IVA (%)**. Los tiquetes muestran la tarifa por artículo y un resumen de IVA por porcentaje, usando los datos históricos de cada venta. La nueva columna CSV es informativa y se ignora al importar artículos o actualizar precios/existencias.
+
+## v0.6.13: vista previa adaptable y actualización de CABYS
+
+En **Productos → Actualización masiva CSV** puedes elegir precios, existencias y/o CABYS. El archivo debe incluir SKU o código de barras, y los CABYS nuevos deben ser 13 dígitos. La vista previa es adaptable; la operación es atómica y verifica que los valores sigan siendo los mismos antes de guardar. Conserva los códigos CABYS como texto en Excel.
+
+
+### v0.6.14 · Alertas y movimientos
+En Productos, el panel Estado del inventario permite filtrar rápidamente agotados, stock bajo y disponibles. El historial individual permite consultar los últimos 300 movimientos por tipo y período, con sus motivos y observaciones.
+
+
+## FacturaCR v0.6.17 — Vista de respaldos
+
+- Resumen visual de la protección de datos y del número de copias automáticas.
+- Programación diaria, semanal o mensual con hora local y retención de archivos.
+- Historial de respaldos creados y verificados por SQLite.
+- Botón **Abrir carpeta** que utiliza Electron para mostrar la carpeta local `automatic-backups`.
+- Acceso rápido a respaldos y bloque informativo al final de la barra lateral.
+- Se conserva la restauración con doble confirmación dentro de **Restauración y opciones avanzadas**.
+- La carpeta automática sigue siendo la misma de versiones anteriores; esta entrega no permite cambiarla.
+
+Antes de actualizar una instalación de trabajo, conserva una copia de `%APPDATA%\facturacr-desktop`.
+
+
+## Novedad v0.6.22
+En Ventas, busca clientes registrados por nombre, nombre comercial, cédula, teléfono o correo, y selecciónalos en la lista filtrada.
+
+
+## v0.6.23 — Diseño del instalador Windows
+
+FacturaCR v0.6.23 — Instalador de Windows personalizado
+
+- Basado en la v0.6.22 (búsqueda de clientes, ventas, inventario, empresas y respaldos intactos).
+- Asistente de instalación NSIS con imagen lateral exclusiva de FacturaCR (164 × 314 píxeles, BMP).
+- Encabezado personalizado del asistente (150 × 57 píxeles, BMP).
+- El desinstalador utiliza la misma identidad gráfica.
+- Los accesos directos del programa y el instalador utilizan build/icon.ico de FacturaCR.
+- La configuración NSIS utiliza español (LCID 3082).
+- No se modifica la base SQLite ni la configuración de usuario.
+
+Cómo compilar en Windows:
+1. npm install
+2. npm run build
+3. npm run dist:win
+
+El instalador .exe se genera en release/ tras compilar correctamente en Windows.
+El archivo build/VISTA_PREVIA_INSTALADOR.png es una representación ilustrativa, no una captura del instalador ejecutándose.
+
+
+## Novedad v0.6.28: Cotizaciones / Proformas
+
+- Nueva sección **Cotizaciones / Proformas** en el menú izquierdo.
+- Busca un cliente registrado por nombre o cédula, o escribe el nombre de un destinatario no registrado.
+- Añade productos y servicios del catálogo, o conceptos personalizados con precio final e IVA.
+- Guarda el documento en SQLite, consulta el historial y expórtalo como PDF A4 desde la aplicación de escritorio.
+- El PDF incluye razón social, identificación y contacto de la empresa, cliente, conceptos, subtotal, IVA, total, vigencia, notas y condiciones.
+- **Logo guardado por empresa:** puede usar el de Ventas → Personalizar tiquete o subir uno exclusivo para cotizaciones. En Preferencias guarda una vez el logo, su visibilidad, los días de vigencia y las condiciones. Todo queda en SQLite y en sus respaldos.
+- Cada cotización conserva una copia del logo y de los precios aplicados, aunque después se actualice el catálogo.
+- **Las cotizaciones NO generan ventas, ni cobran, ni descuentan existencias, ni constituyen comprobantes electrónicos de Hacienda.**
+- Después de crear una proforma, elige **Guardar PDF de la proforma** para seleccionar la ubicación del archivo en Windows.
+
+### Comprobaciones sugeridas
+
+1. Guarda un logo desde los ajustes de tiquete o sube uno exclusivo desde Preferencias de proformas.
+2. Guarda las preferencias y cierra/abre FacturaCR: deben persistir.
+3. Agrega un artículo de ₡700 con IVA del 13% incluido; el total estimado debe ser ₡700.
+4. Agrega un servicio personalizado, selecciona cliente y guarda la proforma.
+5. Descarga el PDF y comprueba que el logo y los importes coinciden.
+6. Verifica que el inventario, el historial de ventas y los pagos sigan sin cambios.
+
+## Novedades v0.6.29
+- Cotizaciones: botón **Editar proforma** al abrir un documento del historial. Se actualiza el mismo registro y se conserva el número, fecha, vigencia, condiciones y logo guardados.
+- Puedes cambiar el cliente, título, observaciones, cantidades, agregar nuevos conceptos o quitar conceptos. Los precios originales de los renglones existentes se mantienen para evitar que una actualización del catálogo cambie cotizaciones anteriores.
+- El PDF incluye información adicional del destinatario: nombre comercial, tipo de identificación, teléfono alternativo y dirección, cuando están disponibles.
+- Para destinatarios no registrados, puedes abrir la sección de datos adicionales y agregar identificación, nombre comercial, teléfono(s), correo y dirección.
+- Ventas: campo de escaneo de código de barras trasladado debajo del buscador principal para una distribución más clara.
+- No se descuentan existencias ni se registran pagos al crear o editar proformas.
+
+**Actualización:** la migración SQLite agrega columnas informativas sin eliminar registros anteriores. Realiza un respaldo antes de instalar. Para compilar en Windows: `npm install`, `npm run build`, `npm run dist:win`.
+
+## Correcciones QA — v0.6.30
+
+Esta versión incorpora las correcciones de redondeo de IVA con descuentos, claridad de precios en el carrito, validación previa de descuentos y sincronización del número de versión. Para detalles y limitaciones de las pruebas, consulta `INFORME_QA_CORREGIDO.md`.
+
+Pruebas reproducibles (requieren Node.js):
+
+```bash
+node tests/qa-regresion-ventas.cjs
+node tests/qa-estatica.cjs
+```
+
+## QA automatizado — v0.6.31
+
+Con **Node.js 22+**, ejecuta `npm test` en la raíz del proyecto. Este comando corre los cálculos, las validaciones estáticas y una integración con **SQLite temporal**, sin usar tu base de datos. Los adaptadores de `tests/qa-adapters/` son **solo para pruebas**, no se emplean en la aplicación.
+
+Revisa `INFORME_QA_v0.6.31.md` para conocer resultados, cobertura y límites. La compilación visual requiere `npm ci` y `npm run build`. Existe un workflow en `.github/workflows/qa.yml` para GitHub Actions cuando esté habilitado en el repositorio.

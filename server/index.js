@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+const APP_VERSION=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
+
 export async function startServer({ dataDir = join(process.cwd(), 'data'), port = 3001, staticDir = null } = {}) {
   mkdirSync(dataDir, { recursive: true });
   const databasePath = join(dataDir, 'facturacr.sqlite');
@@ -36,7 +38,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
   );`);
   // Migración compatible con bases de datos existentes y respaldos antiguos.
   const companyColumns = db.prepare('PRAGMA table_info(companies)').all().map(c=>c.name);
-  for (const field of ['trade_name','phone','email','address','website','social']) {
+  for (const field of ['trade_name','phone','email','address','website','social','avatar_color']) {
     if (!companyColumns.includes(field)) db.exec(`ALTER TABLE companies ADD COLUMN ${field} TEXT NOT NULL DEFAULT ''`);
   }
   db.exec(`CREATE TABLE IF NOT EXISTS clients (
@@ -80,6 +82,15 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
   CREATE INDEX IF NOT EXISTS idx_inventory_movements_company_product ON inventory_movements(company_id,product_id,created_at);`);
   addColumn('products','alert_enabled','INTEGER NOT NULL DEFAULT 1');
   addColumn('products','is_deleted','INTEGER NOT NULL DEFAULT 0');
+  db.exec(`CREATE TABLE IF NOT EXISTS product_bulk_price_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL REFERENCES companies(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    old_price REAL NOT NULL,
+    new_price REAL NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );`);
+
   db.exec(`CREATE TABLE IF NOT EXISTS sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_id INTEGER NOT NULL REFERENCES companies(id),
@@ -120,6 +131,55 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     settings_json TEXT NOT NULL,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  // Cotizaciones: independientes de ventas, pagos y movimientos de inventario.
+  db.exec(`CREATE TABLE IF NOT EXISTS company_quote_settings (
+    company_id INTEGER PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+    settings_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS quotations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL REFERENCES companies(id),
+    client_id INTEGER REFERENCES clients(id),
+    client_name TEXT NOT NULL,
+    client_identification TEXT NOT NULL DEFAULT '',
+    client_email TEXT NOT NULL DEFAULT '',
+    client_phone TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    terms TEXT NOT NULL DEFAULT '',
+    valid_days INTEGER NOT NULL DEFAULT 15,
+    logo_snapshot TEXT NOT NULL DEFAULT '',
+    subtotal_cents INTEGER NOT NULL,
+    tax_cents INTEGER NOT NULL,
+    total_cents INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+  CREATE TABLE IF NOT EXISTS quotation_lines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    quotation_id INTEGER NOT NULL REFERENCES quotations(id),
+    description TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    unit_price_cents INTEGER NOT NULL,
+    tax_rate REAL NOT NULL,
+    subtotal_cents INTEGER NOT NULL,
+    tax_cents INTEGER NOT NULL,
+    total_cents INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_quotes_company ON quotations(company_id,id DESC);`);
+  // v0.6.29: ampliar los datos congelados del receptor, sin alterar proformas anteriores.
+  for (const [field, definition] of Object.entries({
+    client_trade_name:"TEXT NOT NULL DEFAULT ''",
+    client_identification_type:"TEXT NOT NULL DEFAULT ''",
+    client_phone_alt:"TEXT NOT NULL DEFAULT ''",
+    client_address:"TEXT NOT NULL DEFAULT ''"
+  })) addColumn('quotations',field,definition);
+  // Conservar el precio original de los conceptos para futuras ediciones.
+  for (const [field, definition] of Object.entries({
+    source_product_id:'INTEGER',
+    input_price_cents:'INTEGER',
+    input_includes_tax:'INTEGER'
+  })) addColumn('quotation_lines',field,definition);
   // Los códigos internos se validan por empresa en las operaciones nuevas.
   }
   migrateDatabase();
@@ -240,7 +300,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       if(!res.headersSent)res.status(500).json({error:'No se pudo crear el respaldo.'});
     }
   });
-  app.get('/api/health',(_req,res)=>res.json({ok:true,version:'0.6.5',backups:true}));
+  app.get('/api/health',(_req,res)=>res.json({ok:true,version:APP_VERSION,backups:true}));
   app.get('/api/backups/status',(_req,res)=>{
     try {
       const fs=statfsSync(dataDir);
@@ -307,18 +367,20 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.status(400).json({error:'No se pudo restaurar: '+err.message});
     }finally{await cleanTempDir(dir)}
   });
-  app.get('/api/companies', (_req,res) => res.json(db.prepare('SELECT id,legal_name,identification,trade_name,phone,email,address,website,social FROM companies ORDER BY id DESC').all()));
+  const companyColors=['#2563eb','#0891b2','#0f766e','#7c3aed','#d97706','#dc5265'];
+  app.get('/api/companies', (_req,res) => res.json(db.prepare('SELECT id,legal_name,identification,trade_name,phone,email,address,website,social,avatar_color FROM companies ORDER BY id DESC').all()));
   app.post('/api/companies',(req,res)=>{
     const legal_name = String(req.body?.legal_name ?? '').trim();
     const identification = String(req.body?.identification ?? '').trim();
     const extra = Object.fromEntries(['trade_name','phone','email','address','website','social'].map(k=>[k,String(req.body?.[k]??'').trim()]));
+    const avatar_color=companyColors.includes(req.body?.avatar_color)?req.body.avatar_color:companyColors[0];
     if(Object.values(extra).some(v=>v.length>300))return res.status(400).json({error:'Los datos adicionales no pueden superar 300 caracteres.'});
     if (!legal_name || legal_name.length > 160 || !/^\d{9,12}$/.test(identification)) {
       return res.status(400).json({error:'Ingrese una razón social (máx. 160 caracteres) y una identificación de 9 a 12 dígitos.'});
     }
     try {
-      const result = db.prepare('INSERT INTO companies(legal_name,identification,trade_name,phone,email,address,website,social) VALUES (?,?,?,?,?,?,?,?)').run(legal_name,identification,...Object.values(extra));
-      res.status(201).json({id:Number(result.lastInsertRowid),legal_name,identification,...extra});
+      const result = db.prepare('INSERT INTO companies(legal_name,identification,trade_name,phone,email,address,website,social,avatar_color) VALUES (?,?,?,?,?,?,?,?,?)').run(legal_name,identification,...Object.values(extra),avatar_color);
+      res.status(201).json({id:Number(result.lastInsertRowid),legal_name,identification,...extra,avatar_color});
     } catch (err) {
       if (err.code?.startsWith('SQLITE_CONSTRAINT')) return res.status(409).json({error:'La identificación ya está registrada.'});
       console.error(err);
@@ -330,9 +392,10 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Empresa inválida.'});
     const previous=db.prepare('SELECT * FROM companies WHERE id=?').get(id);
     if(!previous)return res.status(404).json({error:'Empresa no encontrada.'});
-    const fields=['legal_name','identification','trade_name','phone','email','address','website','social'];
+    const fields=['legal_name','identification','trade_name','phone','email','address','website','social','avatar_color'];
     const values=Object.fromEntries(fields.map(k=>[k,String(req.body?.[k]??previous[k]??'').trim()]));
-    if(!values.legal_name||values.legal_name.length>160||!/^[0-9]{9,12}$/.test(values.identification)||fields.slice(2).some(k=>values[k].length>300))return res.status(400).json({error:'Revise los datos de la empresa.'});
+    if(!companyColors.includes(values.avatar_color))return res.status(400).json({error:'El color seleccionado no es válido.'});
+    if(!values.legal_name||values.legal_name.length>160||!/^[0-9]{9,12}$/.test(values.identification)||fields.slice(2,8).some(k=>values[k].length>300))return res.status(400).json({error:'Revise los datos de la empresa.'});
     try{
       db.prepare(`UPDATE companies SET ${fields.map(k=>k+'=?').join(',')} WHERE id=?`).run(...fields.map(k=>values[k]),id);
       res.json(db.prepare('SELECT * FROM companies WHERE id=?').get(id));
@@ -390,6 +453,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     }
   };
   const catalogColumns=['kind','product_code','barcode','description','cabys','price','cost','currency','tax_code','unit','stock','min_stock','track_stock','alert_enabled','notes'];
+  const ivaRateLabel=product=>`${Number(product.tax_rate||0).toLocaleString('es-CR',{maximumFractionDigits:2})}%`;
   // Excel en Costa Rica usa normalmente punto y coma como separador regional.
   // BOM UTF-8 + sep=; permite abrir directamente con doble clic en Excel.
   const csvEscape=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
@@ -420,10 +484,10 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const companyId=Number(req.params.companyId);
     if(!Number.isSafeInteger(companyId)||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId))return res.status(404).json({error:'Empresa no encontrada.'});
     const rows=db.prepare('SELECT * FROM products WHERE company_id=? AND is_deleted=0 ORDER BY description COLLATE NOCASE').all(companyId);
-    const cols=['kind','product_code','barcode','description','cabys','price','cost','currency','tax_code','unit','stock','min_stock','track_stock','alert_enabled','notes'];
-    const labels=['Tipo','Código / SKU','Código de barras','Producto / descripción','CABYS','Precio de venta','Costo','Moneda','Código IVA','Unidad','Existencias','Existencias mínimas','Controla existencias','Alerta habilitada','Observaciones'];
+    const cols=['kind','product_code','barcode','description','cabys','price','cost','currency','tax_code','tax_rate_label','unit','stock','min_stock','track_stock','alert_enabled','notes'];
+    const labels=['Tipo','Código / SKU','Código de barras','Producto / descripción','CABYS','Precio de venta','Costo','Moneda','Código IVA','IVA (%)','Unidad','Existencias','Existencias mínimas','Controla existencias','Alerta habilitada','Observaciones'];
     const numeric=new Set(['price','cost','stock','min_stock','track_stock','alert_enabled']);
-    const buffer=makeXlsx('Catálogo',labels,rows.map(row=>cols.map(k=>numeric.has(k)?Number(row[k]):String(row[k]??''))));
+    const buffer=makeXlsx('Catálogo',labels,rows.map(row=>cols.map(k=>k==='tax_rate_label'?ivaRateLabel(row):(numeric.has(k)?Number(row[k]):String(row[k]??'')))));
     res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition','attachment; filename="FacturaCR_catalogo.xlsx"');res.send(buffer);
   });
@@ -431,11 +495,95 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const companyId=Number(req.params.companyId);
     if(!Number.isSafeInteger(companyId)||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId))return res.status(404).json({error:'Empresa no encontrada.'});
     const products=db.prepare('SELECT * FROM products WHERE company_id=? AND is_deleted=0 ORDER BY id').all(companyId);
-    const catalogLabels=['Tipo','Código / SKU','Código de barras','Producto / descripción','CABYS','Precio de venta','Costo','Moneda','Código IVA','Unidad','Existencias','Existencias mínimas','Controla existencias','Alerta habilitada','Observaciones'];
+    const catalogLabels=['Tipo','Código / SKU','Código de barras','Producto / descripción','CABYS','Precio de venta','Costo','Moneda','Código IVA','IVA (%)','Unidad','Existencias','Existencias mínimas','Controla existencias','Alerta habilitada','Observaciones'];
     const encoding=csvEncoding(req);
     res.setHeader('Content-Type',`text/csv; charset=${encoding}`);
     res.setHeader('Content-Disposition','attachment; filename="FacturaCR_catalogo_excel.csv"');
-    res.send(csvBytes('sep=;\r\n'+csvLine(catalogLabels)+products.map(product=>csvLine(catalogColumns.map(k=>product[k]),[1,2,4,8])).join(''),encoding));
+    res.send(csvBytes('sep=;\r\n'+csvLine(catalogLabels)+products.map(product=>csvLine(catalogColumns.flatMap((k,i)=>i===9?[ivaRateLabel(product),product[k]]:[product[k]]),[1,2,4,8])).join(''),encoding));
+  });
+  // Actualización masiva separada de la importación: vista previa y aplicación atómica.
+  // Nunca crea artículos; exige identificadores únicos y versiones originales vigentes.
+  const prepareBulkUpdate=(companyId,payload)=>{
+    const rows=payload?.rows, updatePrice=payload?.updatePrice===true, updateStock=payload?.updateStock===true, updateCabys=payload?.updateCabys===true;
+    if(!updatePrice&&!updateStock&&!updateCabys)throw Error('Selecciona precios, existencias, CABYS o una combinación.');
+    if(!Array.isArray(rows)||rows.length<1||rows.length>2000)throw Error('Selecciona de 1 a 2000 artículos.');
+    const getCode=db.prepare('SELECT * FROM products WHERE company_id=? AND is_deleted=0 AND product_code=?');
+    const getBarcode=db.prepare('SELECT * FROM products WHERE company_id=? AND is_deleted=0 AND barcode=?');
+    const seen=new Set();const prepared=[];
+    for(let i=0;i<rows.length;i++){
+      const r=rows[i];if(!r||typeof r!=='object'||Array.isArray(r))throw Error(`Fila ${i+2}: datos inválidos.`);
+      const code=String(r.product_code??'').trim(),barcode=String(r.barcode??'').trim();
+      if(!code&&!barcode)throw Error(`Fila ${i+2}: falta código/SKU o código de barras.`);
+      const codeMatches=code?getCode.all(companyId,code):[];
+      const barcodeMatches=barcode?getBarcode.all(companyId,barcode):[];
+      if(codeMatches.length>1||barcodeMatches.length>1)throw Error(`Fila ${i+2}: código duplicado en el catálogo.`);
+      if(code&&barcode&&codeMatches.length&&barcodeMatches.length&&codeMatches[0].id!==barcodeMatches[0].id)throw Error(`Fila ${i+2}: SKU y código de barras pertenecen a artículos diferentes.`);
+      const product=codeMatches[0]||barcodeMatches[0];
+      if(!product)throw Error(`Fila ${i+2}: artículo no encontrado (${code||barcode}).`);
+      if(code&&product.product_code!==code || barcode&&product.barcode!==barcode)throw Error(`Fila ${i+2}: el identificador no coincide con el artículo.`);
+      if(seen.has(product.id))throw Error(`Fila ${i+2}: el artículo aparece más de una vez.`);
+      seen.add(product.id);
+      let price=product.price,stock=product.stock,cabys=product.cabys;
+      if(updatePrice){
+        if(r.price===undefined||String(r.price).trim()==='')throw Error(`Fila ${i+2}: falta el precio.`);
+        price=Number(r.price);
+        if(!Number.isFinite(price)||price<0||price>1e12)throw Error(`Fila ${i+2}: precio inválido.`);
+      }
+      if(updateStock){
+        if(product.kind!=='producto'||!Number(product.track_stock))throw Error(`Fila ${i+2}: el artículo no controla existencias.`);
+        if(r.stock===undefined||String(r.stock).trim()==='')throw Error(`Fila ${i+2}: faltan las existencias.`);
+        stock=Number(r.stock);
+        if(!Number.isSafeInteger(stock)||stock<0||stock>1e12)throw Error(`Fila ${i+2}: existencias inválidas (unidades enteras).`);
+      }
+      if(updateCabys){
+        if(r.cabys===undefined)throw Error(`Fila ${i+2}: falta la columna CABYS.`);
+        cabys=String(r.cabys).trim();
+        if(!/^\d{13}$/.test(cabys))throw Error(`Fila ${i+2}: CABYS debe contener exactamente 13 dígitos. Revisa que Excel no lo haya convertido a número.`);
+      }
+      prepared.push({id:product.id,description:product.description,product_code:product.product_code,barcode:product.barcode,
+        old_price:product.price,new_price:price,old_stock:product.stock,new_stock:stock,old_cabys:product.cabys,new_cabys:cabys,
+        priceChanged:updatePrice&&price!==product.price,stockChanged:updateStock&&stock!==product.stock,cabysChanged:updateCabys&&cabys!==product.cabys,
+        // Valores de referencia para confirmar sin pisar cambios concurrentes.
+        expected_price:r.expected_price,expected_stock:r.expected_stock,expected_cabys:r.expected_cabys});
+    }
+    return prepared;
+  };
+  app.post('/api/companies/:companyId/products/bulk-update/preview',(req,res)=>{
+    const id=Number(req.params.companyId);
+    if(!Number.isSafeInteger(id)||!db.prepare('SELECT id FROM companies WHERE id=?').get(id))return res.status(404).json({error:'Empresa no encontrada.'});
+    try{const rows=prepareBulkUpdate(id,req.body);res.json({rows,changed:rows.filter(r=>r.priceChanged||r.stockChanged||r.cabysChanged).length});}
+    catch(e){res.status(400).json({error:e.message})}
+  });
+  app.post('/api/companies/:companyId/products/bulk-update/apply',(req,res)=>{
+    const id=Number(req.params.companyId);
+    if(!Number.isSafeInteger(id)||!db.prepare('SELECT id FROM companies WHERE id=?').get(id))return res.status(404).json({error:'Empresa no encontrada.'});
+    try{
+      const tx=db.transaction(()=>{
+        const rows=prepareBulkUpdate(id,req.body);
+        // Si cambió algún valor desde la vista previa, cancela toda la operación.
+        for(const r of rows){
+          if(r.expected_price===undefined||r.expected_stock===undefined||
+             Number(r.expected_price)!==r.old_price||Number(r.expected_stock)!==r.old_stock||
+             r.expected_cabys===undefined||String(r.expected_cabys)!==r.old_cabys)
+            throw Error(`El artículo «${r.description}» cambió desde la vista previa. Revisa el CSV nuevamente.`);
+        }
+        const update=db.prepare('UPDATE products SET price=?,stock=?,cabys=? WHERE company_id=? AND id=? AND is_deleted=0');
+        const logPrice=db.prepare('INSERT INTO product_bulk_price_changes(company_id,product_id,old_price,new_price) VALUES (?,?,?,?)');
+        const logMovement=db.prepare('INSERT INTO inventory_movements(company_id,product_id,movement_type,quantity,delta,stock_before,stock_after,reason) VALUES (?,?,?,?,?,?,?,?)');
+        let priceChanges=0,stockChanges=0,cabysChanges=0;
+        for(const r of rows){
+          if(!r.priceChanged&&!r.stockChanged&&!r.cabysChanged)continue;
+          const result=update.run(r.new_price,r.new_stock,r.new_cabys,id,r.id);
+          if(result.changes!==1)throw Error('No se pudo actualizar '+r.description);
+          if(r.priceChanged){logPrice.run(id,r.id,r.old_price,r.new_price);priceChanges++}
+          if(r.stockChanged){const delta=r.new_stock-r.old_stock;
+            logMovement.run(id,r.id,'ajuste',Math.abs(delta),delta,r.old_stock,r.new_stock,'Actualización masiva CSV');stockChanges++}
+          if(r.cabysChanged)cabysChanges++;
+        }
+        return {ok:true,processed:rows.length,priceChanges,stockChanges,cabysChanges};
+      });
+      res.json(tx());
+    }catch(e){res.status(400).json({error:e.message})}
   });
   app.post('/api/companies/:companyId/products/import',(req,res)=>{
     const companyId=Number(req.params.companyId);
@@ -611,6 +759,149 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.json(rows);
     }catch(e){res.status(400).json({error:e.message})}
   });
+  // Ajustes reutilizables de proformas; no es necesario configurar el logo cada vez.
+  const quoteDefaults={valid_days:15,show_logo:true,logo:'',terms:'Precios sujetos a disponibilidad. Esta cotización no constituye factura ni reserva de inventario.'};
+  app.get('/api/companies/:companyId/quote-settings',(req,res)=>{
+    try{
+      const companyId=saleCompany(req);
+      const row=db.prepare('SELECT settings_json FROM company_quote_settings WHERE company_id=?').get(companyId);
+      const saved=row?JSON.parse(row.settings_json):{};
+      const ticket=db.prepare('SELECT settings_json FROM company_ticket_settings WHERE company_id=?').get(companyId);
+      let logo='';
+      if(ticket){try{const data=JSON.parse(ticket.settings_json);if(typeof data.logo==='string'&&/^data:image\/(png|jpeg|webp);base64,/i.test(data.logo))logo=data.logo;}catch{}}
+      res.json({settings:{...quoteDefaults,...saved},company_logo:logo});
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  app.put('/api/companies/:companyId/quote-settings',(req,res)=>{
+    try{
+      const companyId=saleCompany(req),body=req.body||{};
+      const days=Number(body.valid_days),terms=String(body.terms||'').trim();
+      if(!Number.isSafeInteger(days)||days<1||days>365||terms.length>1500||typeof body.show_logo!=='boolean')throw Error('Revisa los ajustes de cotización.');
+      const logo=typeof body.logo==='string'?body.logo:'';
+      if(logo.length>360000||(logo&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/i.test(logo)))throw Error('El logotipo debe ser una imagen PNG, JPG o WebP de menos de 250 KB.');
+      const settings={valid_days:days,show_logo:body.show_logo,terms,logo};
+      db.prepare(`INSERT INTO company_quote_settings(company_id,settings_json) VALUES(?,?) ON CONFLICT(company_id) DO UPDATE SET settings_json=excluded.settings_json,updated_at=CURRENT_TIMESTAMP`).run(companyId,JSON.stringify(settings));
+      res.json({ok:true,settings});
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  app.get('/api/companies/:companyId/quotations',(req,res)=>{
+    try{
+      const companyId=saleCompany(req);
+      res.json(db.prepare('SELECT id,created_at,title,client_name,total_cents,valid_days FROM quotations WHERE company_id=? ORDER BY id DESC LIMIT 300').all(companyId));
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  app.get('/api/companies/:companyId/quotations/:quoteId',(req,res)=>{
+    try{
+      const companyId=saleCompany(req),id=Number(req.params.quoteId);
+      if(!Number.isSafeInteger(id)||id<1)throw Error('Cotización inválida.');
+      const quote=db.prepare('SELECT * FROM quotations WHERE id=? AND company_id=?').get(id,companyId);
+      if(!quote)return res.status(404).json({error:'Cotización no encontrada.'});
+      res.json({...quote,lines:db.prepare('SELECT * FROM quotation_lines WHERE quotation_id=? ORDER BY id').all(id)});
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  // Crear y editar cotizaciones sin crear ventas ni mover existencias.
+  function saveQuotation(req,res,edit=false){
+    try{
+      const companyId=saleCompany(req),body=req.body||{};
+      const quoteId=edit?Number(req.params.quoteId):null;
+      const previous=edit?db.prepare('SELECT * FROM quotations WHERE id=? AND company_id=?').get(quoteId,companyId):null;
+      if(edit&&(!Number.isSafeInteger(quoteId)||quoteId<1||!previous))return res.status(404).json({error:'Cotización no encontrada en esta empresa.'});
+      const oldLines=edit?db.prepare('SELECT * FROM quotation_lines WHERE quotation_id=?').all(quoteId):[];
+      const clientId=body.client_id===null||body.client_id===''||body.client_id===undefined?null:Number(body.client_id);
+      const client=clientId?db.prepare('SELECT * FROM clients WHERE id=? AND company_id=?').get(clientId,companyId):null;
+      if(clientId&&!client)throw Error('Cliente no pertenece a esta empresa.');
+      const clientName=client?.name||String(body.client_name||'').trim()||'Consumidor final';
+      if(clientName.length>160)throw Error('Nombre de cliente demasiado largo.');
+      const title=String(body.title||'').trim(),notes=String(body.notes||'').trim();
+      if(title.length>160||notes.length>1500)throw Error('Título u observaciones demasiado largos.');
+      const settingsRow=db.prepare('SELECT settings_json FROM company_quote_settings WHERE company_id=?').get(companyId);
+      const settings={...quoteDefaults,...(settingsRow?JSON.parse(settingsRow.settings_json):{})};
+      const days=edit?previous.valid_days:Number(settings.valid_days);
+      if(!Array.isArray(body.lines)||body.lines.length<1||body.lines.length>100)throw Error('Agrega de 1 a 100 conceptos.');
+      let subtotal=0,tax=0,total=0;
+      const lines=body.lines.map(row=>{
+        const quantity=Number(row.quantity);
+        if(!Number.isSafeInteger(quantity)||quantity<1||quantity>100000)throw Error('Cantidad inválida.');
+        let description,price,rate,includes,sourceId=null;
+        let old=null;
+        if(edit&&row.existing_line_id!==null&&row.existing_line_id!==undefined){
+          old=oldLines.find(line=>line.id===Number(row.existing_line_id));
+          if(!old)throw Error('Una línea no pertenece a esta proforma. Recarga y vuelve a editar.');
+          description=String(row.description||old.description).trim();
+          rate=Number(old.tax_rate);
+          includes=old.input_includes_tax===null
+            ?old.quantity>0&&old.total_cents%old.quantity===0
+            :old.input_includes_tax===1;
+          price=old.input_price_cents!==null
+            ?Number(old.input_price_cents)/100
+            :includes?Number(old.total_cents)/100/Number(old.quantity):Number(old.unit_price_cents)/100;
+          sourceId=old.source_product_id;
+        }else if(row.product_id!==null&&row.product_id!==''&&row.product_id!==undefined){
+          const id=Number(row.product_id);
+          const product=db.prepare('SELECT * FROM products WHERE id=? AND company_id=? AND is_deleted=0').get(id,companyId);
+          if(!product)throw Error('Uno de los artículos ya no está disponible.');
+          if(product.currency!=='CRC')throw Error('Solo se permiten cotizaciones en colones.');
+          description=String(product.description);price=Number(product.price);rate=Number(product.tax_rate);includes=Number(product.price_includes_tax)===1;
+          sourceId=id;
+        }else{
+          description=String(row.description||'').trim();price=Number(row.price);rate=Number(row.tax_rate);includes=row.price_includes_tax===true;
+        }
+        if(!description||description.length>250)throw Error('Describe cada concepto (máx. 250 caracteres).');
+        if(!Number.isFinite(price)||price<0||price>1e9||!Number.isFinite(rate)||rate<0||rate>100)throw Error('Precio o tarifa de IVA inválidos.');
+        let base,iva,unit,lineTotal;
+        if(old&&quantity===old.quantity){
+          // No alterar importes históricos si solo cambian cliente, descripción o notas.
+          unit=old.unit_price_cents;base=old.subtotal_cents;iva=old.tax_cents;lineTotal=old.total_cents;
+        }else{
+          const gross=includes?Math.round(price)*100*quantity:null;
+          unit=Math.round((includes?price/(1+rate/100):price))*100;
+          base=unit*quantity;
+          iva=includes?gross-base:Math.round(base*rate/10000)*100;
+          lineTotal=base+iva;
+        }
+        if(!Number.isSafeInteger(lineTotal)||lineTotal<0||lineTotal>1e12||iva<0)throw Error('Importe inválido.');
+        subtotal+=base;tax+=iva;total+=lineTotal;
+        return {description,quantity,unit,rate,base,iva,lineTotal,sourceId,inputPriceCents:Math.round(price*100),includes:includes?1:0};
+      });
+      if(total<=0||total>1e12)throw Error('El total de la cotización debe ser positivo.');
+      const ticket=db.prepare('SELECT settings_json FROM company_ticket_settings WHERE company_id=?').get(companyId);
+      let logo='';
+      if(edit){logo=previous.logo_snapshot;}else if(settings.show_logo){
+        if(typeof settings.logo==='string'&&/^data:image\/(png|jpeg|webp);base64,/i.test(settings.logo)&&settings.logo.length<360000)logo=settings.logo;
+        else if(ticket){try{const data=JSON.parse(ticket.settings_json);if(typeof data.logo==='string'&&/^data:image\/(png|jpeg|webp);base64,/i.test(data.logo)&&data.logo.length<380000)logo=data.logo;}catch{}}
+      }
+      const freeField=(field,max)=>String(body[field]||'').trim().slice(0,max);
+      const clientFields={
+        identification:client?(client.identification||''):freeField('client_identification',30),
+        email:client?(client.email||''):freeField('client_email',160),
+        phone:client?(client.phone||''):freeField('client_phone',40),
+        trade:client?(client.trade_name||''):freeField('client_trade_name',160),
+        identType:client?(client.identification_type||''):freeField('client_identification_type',10),
+        phoneAlt:client?(client.phone_alt||''):freeField('client_phone_alt',40),
+        address:client?(client.address||''):freeField('client_address',350)
+      };
+      const updated=db.transaction(()=>{
+        let id;
+        if(edit){
+          id=quoteId;
+          db.prepare(`UPDATE quotations SET client_id=?,client_name=?,client_identification=?,client_email=?,client_phone=?,client_trade_name=?,client_identification_type=?,client_phone_alt=?,client_address=?,title=?,notes=?,subtotal_cents=?,tax_cents=?,total_cents=? WHERE id=? AND company_id=?`)
+            .run(clientId,clientName,clientFields.identification,clientFields.email,clientFields.phone,clientFields.trade,clientFields.identType,clientFields.phoneAlt,clientFields.address,title,notes,subtotal,tax,total,id,companyId);
+          db.prepare('DELETE FROM quotation_lines WHERE quotation_id=?').run(id);
+        }else{
+          const result=db.prepare(`INSERT INTO quotations(company_id,client_id,client_name,client_identification,client_email,client_phone,client_trade_name,client_identification_type,client_phone_alt,client_address,title,notes,terms,valid_days,logo_snapshot,subtotal_cents,tax_cents,total_cents)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+            .run(companyId,clientId,clientName,clientFields.identification,clientFields.email,clientFields.phone,clientFields.trade,clientFields.identType,clientFields.phoneAlt,clientFields.address,title,notes,settings.terms,days,logo,subtotal,tax,total);
+          id=Number(result.lastInsertRowid);
+        }
+        const stmt=db.prepare('INSERT INTO quotation_lines(quotation_id,description,quantity,unit_price_cents,tax_rate,subtotal_cents,tax_cents,total_cents,source_product_id,input_price_cents,input_includes_tax) VALUES(?,?,?,?,?,?,?,?,?,?,?)');
+        for(const line of lines)stmt.run(id,line.description,line.quantity,line.unit,line.rate,line.base,line.iva,line.lineTotal,line.sourceId,line.inputPriceCents,line.includes);
+        return {id,total_cents:total,updated:edit};
+      })();
+      res.status(edit?200:201).json(updated);
+    }catch(e){res.status(400).json({error:e.message})}
+  }
+  app.post('/api/companies/:companyId/quotations',(req,res)=>saveQuotation(req,res,false));
+  app.put('/api/companies/:companyId/quotations/:quoteId',(req,res)=>saveQuotation(req,res,true));
   // Histórico completo de créditos y abonos, limitado a la empresa solicitada.
   app.get('/api/companies/:companyId/credit-history',(req,res)=>{
     try{
@@ -664,7 +955,9 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       if(clientId&&!db.prepare('SELECT id FROM clients WHERE id=? AND company_id=?').get(clientId,companyId))throw Error('Cliente no pertenece a esta empresa.');
       if(!Array.isArray(body.lines)||!body.lines.length||body.lines.length>100)throw Error('Agrega entre 1 y 100 líneas.');
       if(!Array.isArray(body.payments)||body.payments.length>10)throw Error('Pagos inválidos.');
-      const discount=Math.round(cents(body.discount||0)/100)*100;
+      const requestedDiscount=Number(body.discount??0);
+      if(!Number.isFinite(requestedDiscount)||requestedDiscount<0)throw Error('El descuento debe ser un importe válido y no negativo.');
+      const discount=Math.round(cents(requestedDiscount)/100)*100;
       const unique=new Set(body.lines.map(l=>String(l.product_id)));
       if(unique.size!==body.lines.length)throw Error('Hay artículos duplicados en el carrito. Agrupa las cantidades.');
       const result=db.transaction(()=>{
@@ -675,11 +968,21 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
           const product=db.prepare('SELECT * FROM products WHERE id=? AND company_id=? AND is_deleted=0').get(productId,companyId);
           if(!product)throw Error('Un artículo no existe o fue eliminado.');
           if(product.currency!=='CRC')throw Error(`«${product.description}» está en USD. Configura su precio en CRC antes de venderlo.`);
-          const rawUnit=Number(product.price_includes_tax)===1?Math.round(cents(product.price)/(1+Number(product.tax_rate)/100)):cents(product.price);
+          const includesTax=Number(product.price_includes_tax)===1;
+          const rate=Number(product.tax_rate);
+          const rawUnit=includesTax?Math.round(cents(product.price)/(1+rate/100)):cents(product.price);
           const unit=Math.round(rawUnit/100)*100,lineSubtotal=unit*quantity;
           if(!Number.isSafeInteger(lineSubtotal)||lineSubtotal>1e12)throw Error('Importe demasiado grande.');
+          // El precio marcado "IVA incluido" es el importe final prometido al cliente.
+          // Al redondear por separado base e IVA pueden perderse ₡1 o más por cantidad.
+          // Conservamos la base en colones enteros y asignamos la diferencia al IVA,
+          // sin cambiar precios de productos ni ventas históricas.
+          const grossLine=includesTax?Math.round(cents(product.price)/100)*100*quantity:null;
+          if(grossLine!==null&&(!Number.isSafeInteger(grossLine)||grossLine>1e12))throw Error('Importe demasiado grande.');
+          const unadjustedTax=Math.round(lineSubtotal*rate/10000)*100;
+          const taxRoundingAdjustment=includesTax?grossLine-lineSubtotal-unadjustedTax:0;
           subtotal+=lineSubtotal;
-          return {product,quantity,unit,lineSubtotal};
+          return {product,quantity,unit,lineSubtotal,taxRoundingAdjustment};
         });
         if(discount>subtotal)throw Error('El descuento supera el subtotal.');
         // Descuento proporcional por línea, con remanente asignado a la última.
@@ -687,7 +990,14 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
         const detailed=lines.map((line,i)=>{
           const part=i===lines.length-1?discount-distributed:Math.floor(discount*line.lineSubtotal/subtotal/100)*100;
           distributed+=part;
-          const lineTax=Math.round((line.lineSubtotal-part)*Number(line.product.tax_rate)/10000)*100;
+          // El ajuste de redondeo corresponde al precio ANTES del descuento.
+          // Se prorratea con la base restante: si se descuenta la totalidad de la
+          // base imponible, el IVA y su ajuste pasan a ₡0 (sin residuos de ₡1).
+          const remainingBase=line.lineSubtotal-part;
+          const roundedTax=Math.round(remainingBase*Number(line.product.tax_rate)/10000)*100;
+          const adjustedRounding=remainingBase>0&&line.lineSubtotal>0
+            ?Math.round(line.taxRoundingAdjustment*remainingBase/line.lineSubtotal/100)*100:0;
+          const lineTax=Math.max(0,roundedTax+adjustedRounding);
           tax+=lineTax;
           return {...line,discount:part,lineTax,lineTotal:line.lineSubtotal-part+lineTax};
         });

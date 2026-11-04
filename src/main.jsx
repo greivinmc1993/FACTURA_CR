@@ -1,9 +1,61 @@
 import React,{useEffect,useState,useRef} from 'react';
 import {createRoot} from 'react-dom/client';
 import './style.css';
+import appLogo from '../build/icon.png';
+import QuotesPanel from './QuotesPanel.jsx';
 
 const APP_VERSION = __APP_VERSION__;
 const ACTIVE_COMPANY_KEY = 'facturacr_active_company_id';
+const COMPANY_COLORS=['#2563eb','#0891b2','#0f766e','#7c3aed','#d97706','#dc5265'];
+const colorForCompany=company=>COMPANY_COLORS.includes(company?.avatar_color)?company.avatar_color:COMPANY_COLORS[0];
+const withAlpha=(hex,alpha=.22)=>{const value=String(hex||'').replace('#','');if(value.length!==6)return hex;const n=parseInt(value,16);const r=(n>>16)&255,g=(n>>8)&255,b=n&255;return `rgba(${r}, ${g}, ${b}, ${alpha})`;};
+function UiIcon({name,size=18}){
+ const shapes={
+  office:<>
+    <path d="M4 21V6.5A1.5 1.5 0 0 1 5.5 5H10v16"/>
+    <path d="M10 3h8.5A1.5 1.5 0 0 1 20 4.5V21"/>
+    <path d="M8 9h.01M8 13h.01M8 17h.01M14 7h2M14 11h2M14 15h2M11 21h2"/>
+  </>,
+  idcard:<>
+    <rect x="3" y="5" width="18" height="14" rx="2.5"/>
+    <circle cx="9" cy="11" r="2.2"/>
+    <path d="M6.8 15.2c.8-1.1 3.6-1.1 4.4 0M14 10h4M14 14h3"/>
+  </>,
+  package:<>
+    <path d="m12 3 7.5 4.2v9.6L12 21l-7.5-4.2V7.2L12 3Z"/>
+    <path d="M12 3v8.8m7.5-4.6L12 11.8 4.5 7.2"/>
+  </>,
+  cart:<>
+    <path d="M6 6h13l-1.4 6.2a2 2 0 0 1-2 1.6H9.3a2 2 0 0 1-2-1.6L5.6 4.8A2 2 0 0 0 3.7 3.3H3"/>
+    <circle cx="10" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>
+  </>,
+  backup:<>
+    <ellipse cx="12" cy="6" rx="7.5" ry="2.5"/>
+    <path d="M4.5 6v5c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5V6"/>
+    <path d="M8 17.5a5 5 0 1 0 8.9-3.1"/><path d="M16 11.8v3.6h-3.6"/>
+  </>,
+  building:<><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 21V9h6v12M7 7h.01M17 7h.01M7 11h.01M17 11h.01"/></>,
+  users:<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></>,
+  boxes:<><path d="m12 2 9 5-9 5-9-5 9-5ZM3 7v10l9 5 9-5V7M12 12v10"/></>,
+  receipt:<><path d="M4 2h16v20l-4-2-4 2-4-2-4 2V2ZM8 7h8M8 11h8M8 15h5"/></>,
+  database:<><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></>,
+  plus:<path d="M12 5v14M5 12h14"/>,
+  chevron:<path d="m6 9 6 6 6-6"/>,
+  check:<path d="m4 12 5 5 11-11"/>,
+  close:<path d="M18 6 6 18M6 6l12 12"/>,
+  shield:<>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+    <path d="m9 12 2 2 4-4"/>
+  </>,
+  edit:<><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L9 17l-4 1 1-4L16.5 3.5Z"/></>,
+  trash:<><path d="M3 6h18M8 6V4h8v2M5 6l1 15h12l1-15M10 10v7M14 10v7"/></>,
+  mail:<><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 8 10-8"/></>,
+  phone:<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.6A2 2 0 0 1 4.1 2h3A2 2 0 0 1 9.1 3.7c.1 1 .4 2 .7 2.9a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.9.3 1.9.6 2.9.7A2 2 0 0 1 22 16.9Z"/>,
+  store:<><path d="M3 10h18l-2-7H5l-2 7ZM5 10v11h14V10M9 21v-7h6v7"/></>,
+  save:<><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v6h10V3M7 21v-8h10v8"/></>
+ };
+ return <svg className="uiIcon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{shapes[name]||shapes.receipt}</svg>;
+}
 const roundCRC=cents=>Math.round(Number(cents||0)/100)*100;
 const provinces={'1':'San José','2':'Alajuela','3':'Cartago','4':'Heredia','5':'Guanacaste','6':'Puntarenas','7':'Limón'};
 const tariffs=[
@@ -39,26 +91,40 @@ const basePrice=p=>Number(p.price_includes_tax)===1?Number(p.price)/(1+Number(p.
 const saleMoney=cents=>(Number(cents||0)/100).toLocaleString('es-CR',{minimumFractionDigits:0,maximumFractionDigits:0});
 const ticketDefaults={width:'80',logo:'',thankYou:'¡Gracias por su compra!',social:'',showAddress:true,showPhone:true,showClient:true,showPayments:true,showTax:true,autoPrint:false,printerName:'',silent:false,copies:1,template:'classic'};
 const safeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ivaLabel=rate=>`${Number(rate||0).toLocaleString('es-CR',{maximumFractionDigits:2})}%`;
+
 function buildTicketHtml(sale,company,settings){
  const t={...ticketDefaults,...settings},width=t.width==='58'?'58mm':'80mm';
  const money=n=>'₡'+saleMoney(n);
  const client=sale.client||{};
  const field=(label,value)=>value?`<p><strong>${safeHtml(label)}:</strong> ${safeHtml(value)}</p>`:'';
- const lines=(sale.lines||[]).map(l=>`<tr><td>${safeHtml(l.description)}<small>${safeHtml(l.quantity)} × ${money(l.unit_price_cents)}</small></td><td class="right">${money(l.total_cents)}</td></tr>`).join('');
+ const lines=(sale.lines||[]).map(l=>`<tr><td>${safeHtml(l.description)}<small>${safeHtml(l.quantity)} × ${money(l.unit_price_cents)} · IVA ${safeHtml(ivaLabel(l.tax_rate))}</small></td><td class="right">${money(l.total_cents)}</td></tr>`).join('');
  const subtotal=Number(sale.subtotal_cents??(sale.lines||[]).reduce((a,l)=>a+Number(l.subtotal_cents||0),0));
  const tax=Number(sale.tax_cents??(sale.lines||[]).reduce((a,l)=>a+Number(l.tax_cents||0),0));
  const discount=Number(sale.discount_cents||0);
+ // El IVA por tarifa se obtiene de las líneas guardadas en la venta, no de la ficha actual del producto.
+ // Se usa el impuesto realmente cobrado en cada línea para que el desglose coincida con el total.
+ const taxByRate=new Map();
+ for(const line of sale.lines||[]){
+   const rate=Number(line.tax_rate||0);
+   if(!Number.isFinite(rate))continue;
+   const key=ivaLabel(rate);
+   taxByRate.set(key,(taxByRate.get(key)||0)+Number(line.tax_cents||0));
+ }
+ const taxBreakdown=[...taxByRate].sort((a,b)=>parseFloat(b[0])-parseFloat(a[0]))
+   .map(([label,amount])=>`<p><span>IVA ${safeHtml(label)}</span><b>${money(amount)}</b></p>`).join('');
+ const taxRows=taxBreakdown||`<p><span>IVA (total)</span><b>${money(tax)}</b></p>`;
  const logo=t.logo&&/^data:image\/(png|jpeg|webp);base64,/.test(t.logo)?`<img class="logo" src="${t.logo}" alt="Logotipo">`:'';
  const compact=t.template==='compact',modern=t.template==='modern';
  const companyBlock=`${field('Razón social',company?.legal_name)}${field('Cédula jurídica/física',company?.identification)}${t.showAddress?field('Dirección',company?.address):''}${t.showPhone?field('Teléfono',company?.phone):''}${field('Correo',company?.email)}${field('Sitio web',company?.website)}`;
  const clientBlock=t.showClient?`<section class="section"><strong>DATOS DEL CLIENTE</strong>${field('Nombre',client.name||sale.client_name||'Consumidor final')}${field('Nombre comercial',client.trade_name)}${field('Identificación',client.identification)}${field('Teléfono',client.phone)}${field('Correo',client.email)}${field('Dirección',client.address)}</section>`:'';
  // Nunca inventar clave ni consecutivo de Hacienda. Solo mostrar datos reales persistidos.
  const feBlock=sale.fe_consecutivo||sale.fe_clave?`<section class="section"><strong>COMPROBANTE ELECTRÓNICO</strong>${field('Consecutivo FE',sale.fe_consecutivo)}${field('Clave FE',sale.fe_clave)}${field('Estado Hacienda',sale.fe_estado||'Sin estado registrado')}</section>`:`<p class="muted">FE Hacienda: no emitida / pendiente de integración</p>`;
- return `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Tiquete #${safeHtml(sale.id)}</title><style>@page{size:${width} auto;margin:2mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;width:${width};max-width:100%;margin:0 auto;padding:3mm;font-size:${compact?'9':'11'}px;overflow-wrap:anywhere}.center{text-align:center}.logo{max-width:80%;max-height:25mm;object-fit:contain}h2{font-size:${modern?'19':'16'}px;margin:6px 0}p{margin:4px 0}table{width:100%;border-collapse:collapse;table-layout:fixed}td{vertical-align:top;padding:4px 0;border-bottom:1px dashed #bbb;overflow-wrap:anywhere}td.right{text-align:right;white-space:nowrap;width:36%}small{display:block;font-size:10px}.totals{margin-top:8px}.totals p{display:flex;justify-content:space-between}.total{font-size:16px;font-weight:bold;border-top:1px solid #111;padding-top:6px}.muted{font-size:10px}.foot{margin-top:12px;border-top:1px dashed #777;padding-top:8px;white-space:pre-wrap}.section{border-top:1px dashed #888;padding:6px 0;margin-top:7px}.section strong{font-size:10px}</style></head><body><header class="center">${logo}<h2>${safeHtml(company?.trade_name||company?.legal_name||'FacturaCR')}</h2>${companyBlock}</header><section class="section"><strong>${sale.status==='anulada'?'VENTA ANULADA':'TIQUETE COMERCIAL INTERNO'}</strong>${field('Número de tiquete',sale.id)}${field('Fecha',sale.created_at)}${field('Tipo de venta',sale.sale_type)}</section>${feBlock}${clientBlock}<section class="section"><strong>DETALLE DE VENTA</strong><table><tbody>${lines}</tbody></table></section><div class="totals"><p><span>Subtotal sin IVA</span><b>${money(subtotal)}</b></p><p><span>Descuento</span><b>− ${money(discount)}</b></p>${t.showTax?`<p><span>IVA</span><b>${money(tax)}</b></p>`:''}<p class="total"><span>TOTAL</span><span>${money(sale.total_cents)}</span></p><p><span>Saldo pendiente</span><span>${money(sale.balance_cents)}</span></p></div>${t.showPayments?`<p class="muted">Pagos: ${(sale.payments||[]).map(x=>`${safeHtml(x.method)} ${money(x.amount_cents)}`).join(' · ')||'Sin pagos'}</p>`:''}<div class="foot center">${safeHtml(t.thankYou)}${(t.social||company?.social)?`<p>${safeHtml(t.social||company.social)}</p>`:''}<p class="muted">Documento interno. No sustituye una factura electrónica autorizada por Hacienda.</p></div></body></html>`;
+ return `<!doctype html><html lang="es"><head><meta charset="UTF-8"><title>Tiquete #${safeHtml(sale.id)}</title><style>@page{size:${width} auto;margin:2mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;width:${width};max-width:100%;margin:0 auto;padding:3mm;font-size:${compact?'9':'11'}px;overflow-wrap:anywhere}.center{text-align:center}.logo{max-width:80%;max-height:25mm;object-fit:contain}h2{font-size:${modern?'19':'16'}px;margin:6px 0}p{margin:4px 0}table{width:100%;border-collapse:collapse;table-layout:fixed}td{vertical-align:top;padding:4px 0;border-bottom:1px dashed #bbb;overflow-wrap:anywhere}td.right{text-align:right;white-space:nowrap;width:36%}small{display:block;font-size:10px}.totals{margin-top:8px}.totals p{display:flex;justify-content:space-between}.total{font-size:16px;font-weight:bold;border-top:1px solid #111;padding-top:6px}.muted{font-size:10px}.foot{margin-top:12px;border-top:1px dashed #777;padding-top:8px;white-space:pre-wrap}.section{border-top:1px dashed #888;padding:6px 0;margin-top:7px}.section strong{font-size:10px}</style></head><body><header class="center">${logo}<h2>${safeHtml(company?.trade_name||company?.legal_name||'FacturaCR')}</h2>${companyBlock}</header><section class="section"><strong>${sale.status==='anulada'?'VENTA ANULADA':'TIQUETE COMERCIAL INTERNO'}</strong>${field('Número de tiquete',sale.id)}${field('Fecha',sale.created_at)}${field('Tipo de venta',sale.sale_type)}</section>${feBlock}${clientBlock}<section class="section"><strong>DETALLE DE VENTA</strong><table><tbody>${lines}</tbody></table></section><div class="totals"><p><span>Subtotal sin IVA</span><b>${money(subtotal)}</b></p><p><span>Descuento</span><b>− ${money(discount)}</b></p>${t.showTax?taxRows:''}<p class="total"><span>TOTAL</span><span>${money(sale.total_cents)}</span></p><p><span>Saldo pendiente</span><span>${money(sale.balance_cents)}</span></p></div>${t.showPayments?`<p class="muted">Pagos: ${(sale.payments||[]).map(x=>`${safeHtml(x.method)} ${money(x.amount_cents)}`).join(' · ')||'Sin pagos'}</p>`:''}<div class="foot center">${safeHtml(t.thankYou)}${(t.social||company?.social)?`<p>${safeHtml(t.social||company.social)}</p>`:''}<p class="muted">Documento interno. No sustituye una factura electrónica autorizada por Hacienda.</p></div></body></html>`;
 }
 function SalesPanel({companyId,company,askConfirm}){
  const [products,setProducts]=useState([]),[clients,setClients]=useState([]),[sales,setSales]=useState([]);
- const [cart,setCart]=useState([]),[clientId,setClientId]=useState(''),[saleType,setSaleType]=useState('contado');
+ const [cart,setCart]=useState([]),[clientId,setClientId]=useState(''),[clientQuery,setClientQuery]=useState(''),[clientResultIndex,setClientResultIndex]=useState(0),[saleType,setSaleType]=useState('contado');
  const [cashTendered,setCashTendered]=useState(''),[discount,setDiscount]=useState('0'),[payments,setPayments]=useState([{method:'Efectivo',amount:''}]);
  const [query,setQuery]=useState(''),[scanCode,setScanCode]=useState(''),[productPage,setProductPage]=useState(1),[historyQuery,setHistoryQuery]=useState(''),[notice,setNotice]=useState('');
  const [historyPeriod,setHistoryPeriod]=useState('mes'),[historyFrom,setHistoryFrom]=useState(''),[historyTo,setHistoryTo]=useState('');
@@ -74,6 +140,21 @@ function SalesPanel({companyId,company,askConfirm}){
  const periodStart=historyPeriod==='dia'?dateKey(today):historyPeriod==='semana'?dateKey(startOfWeek):historyPeriod==='mes'?dateKey(new Date(today.getFullYear(),today.getMonth(),1)):historyPeriod==='anio'?dateKey(new Date(today.getFullYear(),0,1)):historyPeriod==='personalizado'?historyFrom:'';
  const periodEnd=historyPeriod==='personalizado'?historyTo:dateKey(today);
  const PRODUCT_PAGE_SIZE=24;
+ // Buscador de clientes para el punto de venta, sin alterar el cliente seleccionado.
+ const normalizedClientQuery=clientQuery.trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es');
+ const digitsOnly=value=>String(value||'').replace(/[^0-9]/g,'');
+ const searchedClientDigits=digitsOnly(clientQuery);
+ const visibleClients=clients.filter(c=>{
+  if(!normalizedClientQuery)return true;
+  const fields=[c.name,c.trade_name,c.identification,c.phone,c.phone_alt,c.email];
+  const textMatch=fields.some(value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es').includes(normalizedClientQuery));
+  const idMatch=searchedClientDigits.length>=3&&digitsOnly(c.identification).includes(searchedClientDigits);
+  return textMatch||idMatch;
+ });
+ const clientSuggestions=visibleClients.slice(0,8);
+ const selectedClient=clients.find(c=>String(c.id)===String(clientId));
+ const chooseClient=(client)=>{setClientId(String(client.id));setClientQuery('');setClientResultIndex(0)};
+ const resetClient=()=>{setClientId('');setClientQuery('');setClientResultIndex(0)};
  const normalizedProductQuery=query.trim().toLocaleLowerCase('es');
  const matchingProducts=products.filter(p=>p.currency==='CRC'&&(p.kind==='servicio'||(p.kind==='producto'&&(!Number(p.track_stock)||Number(p.stock)>0))))
   .filter(p=>[p.description,p.product_code,p.barcode].some(v=>String(v||'').toLocaleLowerCase('es').includes(normalizedProductQuery)));
@@ -138,7 +219,7 @@ function SalesPanel({companyId,company,askConfirm}){
  const refreshPrinters=async()=>{if(!window.facturacrPrinter?.list)return;setPrinterBusy(true);try{const result=await window.facturacrPrinter.list();setPrinters(result||[])}catch(e){setNotice('No se pudieron consultar las impresoras: '+e.message)}finally{setPrinterBusy(false)}};
  useEffect(()=>{refreshPrinters()},[companyId]);
  const printHtml=async html=>{if(!window.facturacrPrinter)throw Error('Impresión disponible solo en Electron.');const result=await window.facturacrPrinter.print(html,{printerName:ticketSettings.printerName,silent:ticketSettings.silent,copies:Number(ticketSettings.copies)||1,width:ticketSettings.width});if(!result?.success&&!result?.cancelled)throw Error(result?.error||'No se pudo imprimir.');return result};
- const testTicket=async()=>{try{const demo={id:'PRUEBA',created_at:new Date().toLocaleString('es-CR'),client:{name:'Cliente de prueba',identification:'',phone:''},lines:[{description:'Artículo de prueba',quantity:1,unit_price_cents:100000,total_cents:113000,tax_cents:13000}],total_cents:113000,balance_cents:0,payments:[],discount_cents:0};await printHtml(buildTicketHtml(demo,company,ticketSettings));}catch(e){setNotice(e.message)}};
+ const testTicket=async()=>{try{const demo={id:'PRUEBA',created_at:new Date().toLocaleString('es-CR'),client:{name:'Cliente de prueba',identification:'',phone:''},lines:[{description:'Artículo de prueba',quantity:1,unit_price_cents:100000,total_cents:113000,tax_cents:13000,tax_rate:13}],total_cents:113000,balance_cents:0,payments:[],discount_cents:0};await printHtml(buildTicketHtml(demo,company,ticketSettings));}catch(e){setNotice(e.message)}};
  const openTicket=async(id,print=false)=>{try{const sale=await api(`/api/companies/${companyId}/sales/${id}`);sale.client_name=sale.client?.name||clients.find(c=>Number(c.id)===Number(sale.client_id))?.name||'Consumidor final';const html=buildTicketHtml(sale,company,ticketSettings);if(print){await printHtml(html)}else setTicketPreview(html)}catch(e){setNotice(e.message)}};
  const methods=['Efectivo' ,'Tarjeta','SINPE Móvil','Transferencia bancaria','Cheque','Otros'];
  const loadCredits=async()=>{
@@ -166,8 +247,8 @@ function SalesPanel({companyId,company,askConfirm}){
    setProducts(Array.isArray(p)?p:[]);setClients(Array.isArray(c)?c:[]);setSales(Array.isArray(h)?h:[]);
   }catch(e){setNotice(e.message)}
  };
- useEffect(()=>{setCart([]);setClientId('');setDetails(null);setCreditSales([]);setCreditPayments([]);setNotice('');load();loadCredits()},[companyId]);
- const add=product=>setCart(old=>old.some(l=>l.id===product.id)?old.map(l=>l.id===product.id?{...l,quantity:l.quantity+1}:l):[...old,{id:product.id,description:product.description,price:basePrice(product),tax_rate:Number(product.tax_rate),quantity:1}]);
+ useEffect(()=>{setCart([]);setClientId('');setClientQuery('');setDetails(null);setCreditSales([]);setCreditPayments([]);setNotice('');load();loadCredits()},[companyId]);
+ const add=product=>setCart(old=>old.some(l=>l.id===product.id)?old.map(l=>l.id===product.id?{...l,quantity:l.quantity+1}:l):[...old,{id:product.id,description:product.description,price:basePrice(product),listed_price:Number(product.price),includes_tax:Number(product.price_includes_tax)===1,tax_rate:Number(product.tax_rate),quantity:1}]);
  // Los lectores USB suelen actuar como teclado y enviar Enter después del código.
  // Buscar coincidencias exactas evita añadir accidentalmente un producto parecido.
  const scanProduct=()=>{
@@ -180,12 +261,27 @@ function SalesPanel({companyId,company,askConfirm}){
    add(found[0]);setScanCode('');setNotice(`Añadido al carrito: ${found[0].description}`);
  };
  const productSuggestions=normalizedProductQuery?matchingProducts.slice(0,8):[];
- const subtotal=cart.reduce((sum,l)=>sum+roundCRC(Math.round(l.price*100))*l.quantity,0);
+ const lineBaseCents=l=>roundCRC(Math.round(l.price*100))*l.quantity;
+ const lineTaxAdjustment=l=>{
+   if(!l.includes_tax)return 0;
+   const base=lineBaseCents(l);
+   const gross=roundCRC(Math.round(l.listed_price*100))*l.quantity;
+   const taxBeforeAdjustment=roundCRC(Math.round(base*l.tax_rate/100));
+   return gross-base-taxBeforeAdjustment;
+ };
+ const subtotal=cart.reduce((sum,l)=>sum+lineBaseCents(l),0);
  const discountCents=roundCRC(Math.round(Math.max(0,Number(discount)||0)*100));
  const effectiveDiscount=Math.min(subtotal,discountCents);
  let allocated=0;
- const tax=cart.reduce((sum,l,i)=>{const part=i===cart.length-1?effectiveDiscount-allocated:Math.floor(effectiveDiscount*roundCRC(Math.round(l.price*100))*l.quantity/(subtotal||1)/100)*100;allocated+=part;return sum+roundCRC(Math.round((roundCRC(Math.round(l.price*100))*l.quantity-part)*l.tax_rate/100))},0);
+ // Los totales que ve el cajero coinciden con el cálculo del servidor.
+ // Los precios con IVA incluido conservan su precio final (p. ej. ₡700).
+ const tax=cart.reduce((sum,l,i)=>{const base=lineBaseCents(l);const part=i===cart.length-1?effectiveDiscount-allocated:Math.floor(effectiveDiscount*base/(subtotal||1)/100)*100;allocated+=part;const remainingBase=base-part;const adjustment=remainingBase>0&&base>0?Math.round(lineTaxAdjustment(l)*remainingBase/base/100)*100:0;return sum+Math.max(0,roundCRC(Math.round(remainingBase*l.tax_rate/100))+adjustment)},0);
  const total=subtotal-effectiveDiscount+tax;
+ const discountInvalid=discountCents>subtotal;
+ const priceWithTaxCents=l=>{
+   const base=lineBaseCents(l);
+   return base+Math.max(0,roundCRC(Math.round(base*l.tax_rate/100))+lineTaxAdjustment(l));
+ };
  const cashSelected=payments.some(p=>p.method==='Efectivo');
  const nonCashPaid=payments.filter(p=>p.method!=='Efectivo').reduce((sum,p)=>sum+roundCRC(Math.round((Number(p.amount)||0)*100)),0);
  const tenderCents=cashSelected&&cashTendered!==''?Math.max(0,roundCRC(Math.round((Number(cashTendered)||0)*100))):0;
@@ -203,6 +299,8 @@ function SalesPanel({companyId,company,askConfirm}){
   }catch(e){setNotice(e.message)}
  };
  const finish=e=>{e.preventDefault();if(!cart.length){setNotice('Agrega al menos un artículo.');return}
+  if(discountInvalid){setNotice('El descuento supera el subtotal sin IVA. Reduce el descuento antes de confirmar la venta.');return}
+  if(total<=0){setNotice('La venta debe tener un total positivo. Reduce el descuento o revisa los artículos.');return}
   askConfirm('Confirmar venta',`¿Registrar esta venta ${saleType} por ₡${saleMoney(total)}? Se descontará el inventario.`,submit);
  };
  const showSale=async id=>{try{setDetails(await api(`/api/companies/${companyId}/sales/${id}`))}catch(e){setNotice(e.message)}};
@@ -250,10 +348,12 @@ function SalesPanel({companyId,company,askConfirm}){
    <div className="posProducts">{visibleProducts.map(p=><button type="button" className="secondary" key={p.id} onClick={()=>add(p)}><span className="posProductVisual">{p.image_data?<img src={p.image_data} alt={`Foto de ${p.description}`}/>:<span className="posProductNoPhoto">Sin foto</span>}</span><strong>{p.description}</strong><small>{p.product_code||'Sin SKU'} · ₡{Math.round(basePrice(p)).toLocaleString('es-CR',{maximumFractionDigits:0})} sin IVA · {p.kind==='producto'?`Stock: ${p.stock}`:'Servicio'}</small></button>)}</div>
    <div className="posCatalogPager"><span>{matchingProducts.length===0?'No se encontraron artículos disponibles':`Mostrando ${(currentProductPage-1)*PRODUCT_PAGE_SIZE+1}–${Math.min(currentProductPage*PRODUCT_PAGE_SIZE,matchingProducts.length)} de ${matchingProducts.length} artículos · Página ${currentProductPage} de ${productPageCount}`}</span><div className="actions"><button type="button" className="secondary" disabled={currentProductPage<=1} onClick={()=>setProductPage(p=>Math.max(1,p-1))}>‹ Anterior</button><button type="button" className="secondary" disabled={currentProductPage>=productPageCount} onClick={()=>setProductPage(p=>Math.min(productPageCount,p+1))}>Siguiente ›</button></div></div>
   </div>
-  <form className="card posCartCard" onSubmit={finish} onKeyDown={e=>{if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA')e.preventDefault()}}><h3 className="posCartTitle">🛒 Carrito de compras <span>{cart.reduce((s,l)=>s+l.quantity,0)} artículos</span></h3>
-   {cart.length===0?<p className="hint">Selecciona artículos para comenzar.</p>:<div className="movementHistory"><table><thead><tr><th>Artículo</th><th>Cantidad</th><th>Precio</th><th>Acción</th></tr></thead><tbody>{cart.map(l=><tr key={l.id}><td>{l.description}</td><td><input style={{width:90}} type="number" min="1" max="100000" step="1" value={l.quantity} onChange={e=>setCart(old=>old.map(x=>x.id===l.id?{...x,quantity:Number(e.target.value)}:x))}/></td><td>₡{saleMoney(roundCRC(Math.round(l.price*100))*l.quantity)}</td><td><button type="button" className="danger" onClick={()=>setCart(old=>old.filter(x=>x.id!==l.id))}>Quitar</button></td></tr>)}</tbody></table></div>}
-   <div className="two"><Field title="Cliente"><select value={clientId} onChange={e=>setClientId(e.target.value)}><option value="">Consumidor final</option>{clients.map(c=><option value={c.id} key={c.id}>{c.name} · {c.identification}</option>)}</select></Field><Field title="Condición de venta"><select value={saleType} onChange={e=>setSaleType(e.target.value)}><option value="contado">Contado</option><option value="credito">Crédito</option></select></Field></div>
-   <Field title="Descuento total (₡)"><input type="number" min="0" step="0.01" value={discount} onChange={e=>setDiscount(e.target.value)}/></Field>
+  <form className="card posCartCard" onSubmit={finish} onKeyDown={e=>{if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA')e.preventDefault()}}><div className="posCartHeader"><h3 className="posCartTitle"><span className="posCartTitleMain">🛒 Carrito de compras</span><span>{cart.reduce((s,l)=>s+l.quantity,0)} artículos</span></h3>{cart.length>0&&<p className="posCartSubtitle">Los artículos agregados se muestran aquí. Puedes ajustar cantidades antes de confirmar la venta.</p>}</div>
+   {cart.length===0?<div className="posCartEmpty"><strong>No has agregado artículos todavía</strong><p className="hint">Selecciona productos del catálogo para comenzar la venta.</p></div>:<div className="posCartTableWrap"><table className="posCartTable"><thead><tr><th>Artículo</th><th>Cantidad</th><th>Precio</th><th>Acción</th></tr></thead><tbody>{cart.map((l,index)=><tr key={l.id} className="posCartRow"><td className="posCartItemCell"><div className="posCartItemBlock"><span className="posCartItemIndex">{index+1}</span><div><strong className="posCartItemName">{l.description}</strong><small className="posCartItemHint">Artículo agregado al carrito</small></div></div></td><td><input className="posCartQtyInput" type="number" min="1" max="100000" step="1" value={l.quantity} onChange={e=>setCart(old=>old.map(x=>x.id===l.id?{...x,quantity:Number(e.target.value)}:x))}/></td><td className="posCartPriceCell"><strong className="posCartLineTotal">₡{saleMoney(priceWithTaxCents(l))}</strong><small className="posCartItemHint">Con IVA · antes de descuentos</small><small className="posCartItemHint">Base sin IVA: ₡{saleMoney(lineBaseCents(l))}</small></td><td className="posCartActionCell"><button type="button" className="danger" onClick={()=>setCart(old=>old.filter(x=>x.id!==l.id))}>Quitar</button></td></tr>)}</tbody></table></div>}
+   <div className="posClientSaleStack"><div className="posClientPicker"><div className="posClientSearchHeader"><strong>Cliente de la venta</strong>{!selectedClient&&<span>Consumidor final</span>}</div>{selectedClient?<div className="posClientSelectedCard"><div className="posClientSelectedInitial" aria-hidden="true">{String(selectedClient.name||'C').charAt(0).toUpperCase()}</div><div className="posClientSelectedInfo"><strong>{selectedClient.name}</strong><small>{selectedClient.identification||'Sin identificación'}{selectedClient.trade_name?` · ${selectedClient.trade_name}`:''}</small><small>{selectedClient.phone||selectedClient.email||'Cliente registrado'}</small></div><button type="button" className="secondary posClientChangeButton" onClick={resetClient}>Cambiar</button></div>:<><label className="field" htmlFor="posClientSearch">Buscar cliente por nombre o cédula<input id="posClientSearch" type="search" value={clientQuery} onChange={e=>{setClientQuery(e.target.value);setClientResultIndex(0)}} onKeyDown={e=>{if(e.key==='ArrowDown'){e.preventDefault();e.stopPropagation();setClientResultIndex(i=>Math.min(i+1,clientSuggestions.length-1))}else if(e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();setClientResultIndex(i=>Math.max(i-1,0))}else if(e.key==='Enter'&&clientQuery.trim()){e.preventDefault();e.stopPropagation();if(clientSuggestions.length)chooseClient(clientSuggestions[Math.min(clientResultIndex,clientSuggestions.length-1)])}else if(e.key==='Escape'){e.stopPropagation();setClientQuery('');setClientResultIndex(0)}}} placeholder="Escribe nombre, cédula, teléfono o correo..." autoComplete="off" aria-label="Buscar cliente para esta venta" aria-controls="posClientResults"/></label>{clientQuery.trim()?<div id="posClientResults" className="posClientResults" role="group" aria-label="Resultados de búsqueda de clientes"><p className="posClientMatches">{visibleClients.length===0?'No se encontraron clientes.':`${visibleClients.length} cliente(s) encontrado(s). Haz clic para seleccionar.`}</p>{clientSuggestions.map((c,i)=><button key={c.id} type="button" className={'posClientResult '+(i===clientResultIndex?'isHighlighted':'')} onClick={()=>chooseClient(c)}><span className="posClientResultAvatar" aria-hidden="true">{String(c.name||'C').charAt(0).toUpperCase()}</span><span className="posClientResultInfo"><strong>{c.name}</strong><small>{c.identification||'Sin identificación'}{c.trade_name?` · ${c.trade_name}`:''}</small><small>{[c.phone,c.email].filter(Boolean).join(' · ')}</small></span><span className="posClientResultAction" aria-hidden="true">Elegir</span></button>)}{visibleClients.length>8&&<p className="posClientResultsMore">Mostrando los primeros 8. Escribe más letras o números para precisar.</p>}</div>:<p className="posClientSearchHint">Escribe para ver clientes coincidentes y selecciona uno. Si no eliges ninguno, la venta será para consumidor final.</p>}</>}</div><div className="posSaleCondition"><Field title="Condición de venta"><select value={saleType} onChange={e=>setSaleType(e.target.value)}><option value="contado">Contado</option><option value="credito">Crédito</option></select></Field></div></div>
+   <Field title="Descuento total (₡)"><input type="number" min="0" step="1" max={subtotal/100} value={discount} onChange={e=>setDiscount(e.target.value)} aria-invalid={discountInvalid}/></Field>
+   {discountInvalid&&<p className="posDiscountError" role="alert">El descuento ingresado supera el subtotal sin IVA (₡{saleMoney(subtotal)}). Corrige el importe para registrar la venta.</p>}
+   {cart.length>0&&total<=0&&!discountInvalid&&<p className="posDiscountError" role="alert">La venta debe tener un total mayor que ₡0.</p>}
    <div className="posTotals"><div><span>Subtotal sin IVA</span><strong>₡{saleMoney(subtotal)}</strong></div><div><span>Descuento</span><strong className="posDiscount">− ₡{saleMoney(effectiveDiscount)}</strong></div><div><span>IVA</span><strong>₡{saleMoney(tax)}</strong></div><div className="posGrandTotal"><span>TOTAL A PAGAR</span><strong>₡{saleMoney(total)}</strong></div></div>
    <h4>Pagos combinados</h4>
    {payments.map((pay,i)=><div className="posPayment" key={i}>
@@ -271,7 +371,7 @@ function SalesPanel({companyId,company,askConfirm}){
    {cashSelected&&<div className="posCashBox"><label htmlFor="posCashTendered" className="posCashTitle">Efectivo recibido (₡)</label><input id="posCashTendered" type="number" min="0" step="0.01" value={cashTendered} onChange={e=>setCashTendered(e.target.value)} placeholder="Monto entregado por el cliente"/><p className="hint">El sistema aplica únicamente lo necesario a la venta. El excedente se devuelve como vuelto.</p><div className="posCashResults"><span>Aplicado en efectivo: <strong>₡{saleMoney(cashApplied)}</strong></span><span className="posChange">Vuelto: <strong>₡{saleMoney(changeCents)}</strong></span></div></div>}
    <p className="posPaidSummary"><strong>Pagado:</strong> ₡{saleMoney(paid)} · <strong>Saldo:</strong> ₡{saleMoney(Math.max(0,total-paid))}</p>
    {saleType==='credito'&&<p className="hint">Las ventas a crédito requieren un cliente registrado. Puedes registrar abonos posteriores desde el historial de ventas.</p>}
-   <button type="submit" disabled={!cart.length||discountCents>subtotal||nonCashPaid>total||(saleType==='contado'&&paid!==total)||(saleType==='credito'&&(!clientId||paid>=total))}>Confirmar venta</button>
+   <button type="submit" disabled={!cart.length||discountInvalid||total<=0||nonCashPaid>total||(saleType==='contado'&&paid!==total)||(saleType==='credito'&&(!clientId||paid>=total))}>Confirmar venta</button>
   </form>
   <section className="card"><h3>Impresión de tiquetes</h3><p className="hint">Impresoras instaladas en Windows. Configuración independiente por empresa; tiquetes comerciales internos, no facturas electrónicas de Hacienda.</p><button type="button" className="secondary" onClick={()=>{setTicketConfigOpen(v=>!v);setTicketDraft({...ticketSettings});setTicketSavedMessage('')}}>{ticketConfigOpen?'Cerrar configuración':'Personalizar tiquete'}</button>{ticketConfigOpen&&<div className="ticketSettings"><div className="two"><Field title="Ancho de papel"><select value={ticketDraft.width} onChange={e=>updateTicket('width',e.target.value)}><option value="58">58 mm</option><option value="80">80 mm</option></select></Field><Field title="Texto adicional para redes sociales (opcional)"><input value={ticketDraft.social} maxLength="200" onChange={e=>updateTicket('social',e.target.value)}/></Field></div><div className="two"><Field title="Impresora instalada en Windows"><select value={ticketDraft.printerName} onChange={e=>updateTicket('printerName',e.target.value)}><option value="">Predeterminada de Windows</option>{printers.map(pr=><option key={pr.name} value={pr.name}>{pr.displayName||pr.name}{pr.isDefault?' (predeterminada)':''}</option>)}</select></Field><Field title="Copias"><input type="number" min="1" max="5" step="1" value={ticketDraft.copies} onChange={e=>updateTicket('copies',Math.max(1,Math.min(5,Number(e.target.value)||1)))}/></Field></div><div className="actions"><button type="button" className="secondary" disabled={printerBusy} onClick={refreshPrinters}>Actualizar impresoras</button><button type="button" className="secondary" onClick={testTicket}>Imprimir tiquete de prueba</button></div><div className="two"><Field title="Plantilla"><select value={ticketDraft.template} onChange={e=>updateTicket('template',e.target.value)}><option value="classic">Clásica</option><option value="compact">Compacta</option><option value="modern">Moderna</option></select></Field></div><div className="ticketChecks"><label><input type="checkbox" checked={!!ticketDraft.silent} onChange={e=>updateTicket('silent',e.target.checked)}/>Impresión directa sin diálogo (solo impresora seleccionada)</label></div><Field title="Mensaje de agradecimiento"><textarea rows="2" maxLength="300" value={ticketDraft.thankYou} onChange={e=>updateTicket('thankYou',e.target.value)}/></Field><Field title="Logotipo (PNG, JPEG o WebP)">
   <p className="hint">Dimensiones máximas: 800 × 800 píxeles. Tamaño máximo: 250 KB. Para una mejor impresión térmica utiliza un logotipo de alto contraste, preferiblemente en blanco y negro.</p>
@@ -308,9 +408,64 @@ function SalesPanel({companyId,company,askConfirm}){
   {ticketPreview&&<div className="ticketOverlay" role="dialog" aria-modal="true" aria-label="Vista previa de tiquete"><div className="ticketModal"><h3>Vista previa del tiquete</h3><iframe title="Tiquete" sandbox="allow-same-origin" srcDoc={ticketPreview}/><div className="actions"><button type="button" onClick={async()=>{try{if(!window.facturacrPrinter)throw Error('La impresión requiere la aplicación de escritorio.');await printHtml(ticketPreview)}catch(e){setNotice(e.message)}}}>Imprimir con Windows</button><button type="button" className="secondary" onClick={()=>setTicketPreview('')}>Cerrar</button></div></div></div>}
  </div>;
 }
+
+function backupFileDate(filename){
+ const match=String(filename||'').match(/^FacturaCR_auto_(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})\.sqlite$/);
+ if(!match)return 'Fecha no disponible';
+ const date=new Date(`${match[1]}T${match[2]}:${match[3]}:${match[4]}Z`);
+ return Number.isNaN(date.getTime())?'Fecha no disponible':date.toLocaleString('es-CR',{dateStyle:'medium',timeStyle:'short'});
+}
+function BackupWorkspace({autoBackup,autoConfig,setAutoConfig,backupStatus,busy,downloadBackup,createAutoBackup,saveAutoBackup,refreshAutoBackup,refreshBackupStatus,restoreInput,restoreBackup,setMessage,sizeLabel}){
+ const files=Array.isArray(autoBackup?.files)?autoBackup.files:[];
+ const latest=files[0]||null;
+ const openFolder=async()=>{
+  try{
+   if(!window.facturacrBackups?.openFolder)throw Error('Abrir carpeta requiere la aplicación de escritorio.');
+   const result=await window.facturacrBackups.openFolder();
+   if(!result?.success)throw Error(result?.error||'Windows no pudo abrir la carpeta.');
+  }catch(e){setMessage(e.message)}
+ };
+ return <section className="backupWorkspace">
+  <div className="backupHero">
+   <div><p className="backupEyebrow">Protección de datos · Costa Rica</p><h3>Copias de seguridad</h3><p className="hint">Protege los datos SQLite de tus empresas con copias verificadas almacenadas localmente.</p></div>
+   <button type="button" disabled={busy} onClick={createAutoBackup}>▣ Crear respaldo ahora</button>
+  </div>
+  <div className="backupProtectionBanner">
+   <span className="backupShield" aria-hidden="true">♢</span>
+   <div><p className="backupEyebrow">Protección de datos locales</p><h4>Tu historial, protegido</h4><p>Las copias incluyen los datos de las empresas registrados en SQLite. No se envían a un servidor externo.</p></div>
+   <span className={'backupStateBadge '+(autoConfig.enabled?'enabled':'disabled')}>{autoConfig.enabled?'● Automáticos activos':'○ Automáticos desactivados'}</span>
+  </div>
+  <div className="backupMetrics">
+   <div className="backupMetric"><small>Última copia automática</small><strong>{latest?backupFileDate(latest):'Sin copias aún'}</strong><span>Fecha de la copia más reciente</span></div>
+   <div className="backupMetric"><small>Programación</small><strong>{autoConfig.enabled?({daily:'Diaria',weekly:'Semanal',monthly:'Mensual'}[autoConfig.frequency]||'Configurada'):'Desactivada'}</strong><span>{autoConfig.enabled?`Hora local: ${autoConfig.time}`:'Puedes activarla cuando quieras'}</span></div>
+   <div className="backupMetric"><small>Copias registradas</small><strong>{files.length}</strong><span>En la carpeta automática configurada</span></div>
+  </div>
+  <div className="backupColumns">
+   <div className="card backupSettingsCard"><div className="backupCardHeading"><div><h4>Programación automática</h4><p className="hint">Configura cuándo se generan y cuántas copias se conservan.</p></div><span aria-hidden="true">⚙</span></div>
+    <label className="backupSwitch"><input type="checkbox" checked={!!autoConfig.enabled} onChange={e=>setAutoConfig({...autoConfig,enabled:e.target.checked})}/><span><strong>Activar respaldos automáticos</strong><small>Se ejecutan mientras FacturaCR está abierto; al reiniciar se revisan los pendientes.</small></span></label>
+    <div className="backupSettingsGrid">
+     <Field title="Frecuencia"><select value={autoConfig.frequency} onChange={e=>setAutoConfig({...autoConfig,frequency:e.target.value})}><option value="daily">Diario</option><option value="weekly">Semanal (lunes)</option><option value="monthly">Mensual (día 1)</option></select></Field>
+     <Field title="Conservar últimas copias"><input type="number" min="1" max="365" value={autoConfig.keep} onChange={e=>setAutoConfig({...autoConfig,keep:Number(e.target.value)})}/></Field>
+     <Field title="Hora local del respaldo"><input type="time" value={autoConfig.time} onChange={e=>setAutoConfig({...autoConfig,time:e.target.value})}/></Field>
+    </div>
+    <div className="backupDirectory"><small>Carpeta de respaldos automáticos</small><code title={autoBackup?.directory||''}>{autoBackup?.directory||'Consultando ruta local…'}</code><div className="actions"><button type="button" className="secondary" onClick={openFolder}>▤ Abrir carpeta</button><button type="button" className="secondary" onClick={refreshBackupStatus}>Actualizar espacio</button></div><p className="hint">Base: {sizeLabel(backupStatus?.databaseBytes)} · WAL: {sizeLabel(backupStatus?.walBytes)} · Espacio disponible: {sizeLabel(backupStatus?.freeBytes)}</p></div>
+    <div className="backupSettingsActions"><button type="button" disabled={busy} onClick={saveAutoBackup}>✓ Guardar configuración</button><button type="button" disabled={busy} className="secondary" onClick={downloadBackup}>↓ Descargar copia SQLite</button></div>
+   </div>
+   <div className="card backupHistoryCard"><div className="backupCardHeading"><div><h4>Historial de respaldos</h4><p className="hint">Archivos creados y verificados en la carpeta automática.</p></div><button type="button" className="backupRefresh" disabled={busy} onClick={refreshAutoBackup}>⟳ Actualizar</button></div>
+     {files.length?<div className="backupFileList">{files.slice(0,20).map(f=><div className="backupFileRow" key={f}><span className="backupFileIcon" aria-hidden="true">▤</span><div><strong title={f}>{f}</strong><small>{backupFileDate(f)} · Copia automática verificada</small></div></div>)}</div>:<div className="backupEmpty"><strong>Aún no hay copias automáticas</strong><p className="hint">Presiona «Crear respaldo ahora» para generar la primera copia.</p></div>}
+     {files.length>20&&<p className="hint">Se muestran las 20 copias más recientes de {files.length}.</p>}
+     {autoBackup?.lastError&&<p className="warning">Último error: {autoBackup.lastError}</p>}
+   </div>
+  </div>
+  <div className="backupAdvanced"><details><summary>Restauración y opciones avanzadas</summary><p>La restauración reemplaza toda la información actual de las empresas. FacturaCR verifica la integridad del archivo y genera una copia previa antes de reemplazar la base.</p><div className="actions"><button type="button" className="danger" disabled={busy} onClick={()=>restoreInput.current?.click()}>Restaurar archivo .sqlite</button><button type="button" className="secondary" disabled={busy} onClick={refreshAutoBackup}>Actualizar historial</button></div><input ref={restoreInput} type="file" accept=".sqlite" style={{display:'none'}} onChange={restoreBackup}/></details></div>
+  <p className="backupFooterInfo">ⓘ Los respaldos automáticos solo se ejecutan con FacturaCR abierto. Si el programa estuvo cerrado, comprueba los respaldos pendientes cuando se vuelva a abrir. Mantén también una copia en un disco externo.</p>
+ </section>;
+}
+
 function App(){
- const restoreInput=useRef(null),catalogInput=useRef(null);
+ const restoreInput=useRef(null),catalogInput=useRef(null),bulkInput=useRef(null);
  const [backupStatus,setBackupStatus]=useState(null),[catalogPreview,setCatalogPreview]=useState(null),[catalogBusy,setCatalogBusy]=useState(false);
+ const [bulkPreview,setBulkPreview]=useState(null),[bulkFile,setBulkFile]=useState(null),[bulkPrice,setBulkPrice]=useState(true),[bulkStock,setBulkStock]=useState(false),[bulkCabys,setBulkCabys]=useState(false),[bulkBusy,setBulkBusy]=useState(false);
  const [backupBusy,setBackupBusy]=useState(false);
  const [autoBackup,setAutoBackup]=useState(null),[autoConfig,setAutoConfig]=useState({enabled:false,frequency:'daily',time:'20:00',keep:14});
  const [dialog,setDialog]=useState(null);
@@ -318,9 +473,13 @@ function App(){
  const closeDialog=()=>setDialog(null);
  const confirmDialog=()=>{const action=dialog?.action;setDialog(null);if(action)void action()};
  const [companies,setCompanies]=useState([]),[selected,setSelected]=useState(null),[tab,setTab]=useState('companies');
+ const [companyMenuOpen,setCompanyMenuOpen]=useState(false);
+ const companyMenuRef=useRef(null);
+ useEffect(()=>{const close=e=>{if(!companyMenuRef.current?.contains(e.target))setCompanyMenuOpen(false)};document.addEventListener('pointerdown',close);return()=>document.removeEventListener('pointerdown',close)},[]);
  const [geoCantons,setGeoCantons]=useState({}),[geoDistricts,setGeoDistricts]=useState({}),[geoError,setGeoError]=useState('');
- const [companyForm,setCompanyForm]=useState({legal_name:'',identification:'',trade_name:'',phone:'',email:'',address:'',website:'',social:''}),[items,setItems]=useState([]);
+ const [companyForm,setCompanyForm]=useState({legal_name:'',identification:'',trade_name:'',phone:'',email:'',address:'',website:'',social:'',avatar_color:COMPANY_COLORS[0]}),[items,setItems]=useState([]);
  const [movementProduct,setMovementProduct]=useState(null),[movements,setMovements]=useState([]),[moveForm,setMoveForm]=useState({movement_type:'entrada',quantity:'1',reason:'Compra',notes:''}),[form,setForm]=useState(blankClient),[editing,setEditing]=useState(null),[search,setSearch]=useState(''),[message,setMessage]=useState('');
+ const [stockFilter,setStockFilter]=useState('all'),[movementTypeFilter,setMovementTypeFilter]=useState('all'),[movementFrom,setMovementFrom]=useState(''),[movementTo,setMovementTo]=useState('');
  const sortStorageKey=`facturacr_sort_${selected??'none'}_${tab}`;
  const [sortBy,setSortBy]=useState('az');
  useEffect(()=>{try{setSortBy(localStorage.getItem(sortStorageKey)||'az')}catch{setSortBy('az')}},[sortStorageKey]);
@@ -398,10 +557,46 @@ function App(){
    const isUtf8Bom=raw[0]===0xEF&&raw[1]===0xBB&&raw[2]===0xBF;
    const decoded=new TextDecoder(isUtf8Bom?'utf-8':'windows-1252').decode(raw);
    const rows=parseCsv(decoded);if(!rows.length)throw Error('El archivo no contiene artículos.');setCatalogPreview({name:file.name,rows});setMessage('Revisa la vista previa antes de importar.')}catch(err){setCatalogPreview(null);setMessage(err.message)}};
+ const selectBulkFile=async(e)=>{
+  const file=e.target.files?.[0];e.target.value='';if(!file)return;
+  setBulkPreview(null);setBulkFile(null);
+  try{
+   if(file.size>2*1024*1024)throw Error('El CSV supera 2 MB. Divide el catálogo en lotes.');
+   const bytes=new Uint8Array(await file.arrayBuffer());
+   const bom=bytes[0]===239&&bytes[1]===187&&bytes[2]===191;
+   const rows=parseCsv(new TextDecoder(bom?'utf-8':'windows-1252').decode(bytes));
+   if(!rows.length)throw Error('No se encontraron artículos en el archivo.');
+   if(rows.some(r=>!r.product_code&&!r.barcode))throw Error('Cada fila debe contener un SKU o código de barras.');
+   setBulkFile({name:file.name,rows});setMessage('Archivo listo. Elige qué campos deseas actualizar y revisa la vista previa.');
+  }catch(err){setMessage(err.message)}
+ };
+ const previewBulk=async()=>{
+  if(!bulkFile)return;
+  setBulkBusy(true);setBulkPreview(null);
+  try{
+   const result=await api(`/api/companies/${selected}/products/bulk-update/preview`,{method:'POST',body:JSON.stringify({rows:bulkFile.rows,updatePrice:bulkPrice,updateStock:bulkStock,updateCabys:bulkCabys})});
+   setBulkPreview({...result,companyId:selected,updatePrice:bulkPrice,updateStock:bulkStock,updateCabys:bulkCabys});
+   setMessage(`Vista previa validada: ${result.changed} artículo(s) con cambios de ${result.rows.length} revisados.`);
+  }catch(err){setMessage(err.message)}finally{setBulkBusy(false)}
+ };
+ const applyBulk=()=>{
+  if(!bulkPreview||!bulkFile||bulkPreview.companyId!==selected)return;
+  askConfirm('Confirmar actualización masiva',`¿Actualizar ${bulkPreview.changed} artículo(s) de ${current?.legal_name}? Los cambios de existencias se registrarán en movimientos. Esta acción no crea artículos.`,async()=>{
+   setBulkBusy(true);
+   try{
+    const rows=bulkFile.rows.map((r,i)=>({...r,expected_price:bulkPreview.rows[i].old_price,expected_stock:bulkPreview.rows[i].old_stock,expected_cabys:bulkPreview.rows[i].old_cabys}));
+    const result=await api(`/api/companies/${selected}/products/bulk-update/apply`,{method:'POST',body:JSON.stringify({rows,updatePrice:bulkPreview.updatePrice,updateStock:bulkPreview.updateStock,updateCabys:bulkPreview.updateCabys})});
+    setBulkPreview(null);setBulkFile(null);await refreshItems();
+    setMessage(`Actualización terminada: ${result.priceChanges} precio(s), ${result.stockChanges} existencia(s) y ${result.cabysChanges} CABYS modificados.`);
+   }catch(err){setBulkPreview(null);setMessage(err.message+' Vuelve a generar la vista previa.')}finally{setBulkBusy(false)}
+  });
+ };
  const importCatalog=async()=>{if(!catalogPreview)return;askConfirm('Importar catálogo',`¿Importar ${catalogPreview.rows.length} artículos a ${current?.legal_name}? No se sobrescribirán artículos existentes.`,()=>persistCatalog());};
  const persistCatalog=async()=>{
   setCatalogBusy(true);try{const result=await api(`/api/companies/${selected}/products/import`,{method:'POST',body:JSON.stringify({rows:catalogPreview.rows})});setCatalogPreview(null);await refreshItems();setMessage(`Se importaron ${result.imported} artículos correctamente.`)}catch(err){setMessage(err.message)}finally{setCatalogBusy(false)}};
  const current=companies.find(c=>c.id===selected);
+ const currentCompanyName=current?.trade_name||current?.legal_name||'Sin asignar';
+ const currentCompanyMeta=current?.identification||'Historial multiempresa';
  const endpoint=`/api/companies/${selected}/${tab}`;
  const refreshCompanies=async()=>{try{const result=await api('/api/companies');setCompanies(result);setSelected(prev=>{
     const saved=localStorage.getItem(ACTIVE_COMPANY_KEY);
@@ -429,11 +624,18 @@ function App(){
  useEffect(()=>{if(tab==='clients'&&form.province)getGeo(`/provincia/${Number(form.province)}/cantones.json`,setGeoCantons);else setGeoCantons({})},[tab,form.province]);
  useEffect(()=>{if(tab==='clients'&&form.province&&form.canton)getGeo(`/provincia/${Number(form.province)}/canton/${Number(form.canton)}/distritos.json`,setGeoDistricts);else setGeoDistricts({})},[tab,form.province,form.canton]);
  const change=(key,value)=>setForm(prev=>({...prev,[key]:value,...(key==='tax_code'?{tax_rate:rates[value]}:{})}));
+ const resetCompanyForm=()=>setCompanyForm({legal_name:'',identification:'',trade_name:'',phone:'',email:'',address:'',website:'',social:'',avatar_color:COMPANY_COLORS[0]});
+ const [companyModalOpen,setCompanyModalOpen]=useState(false);
+ const [companySaving,setCompanySaving]=useState(false);
+ const [companyModalError,setCompanyModalError]=useState('');
+ const closeCompanyModal=()=>{if(!companySaving){setCompanyModalOpen(false);setEditingCompany(null)}};
  const saveCompany=e=>{e.preventDefault();askConfirm('Guardar empresa',`¿${editingCompany?'Actualizar':'Registrar'} la empresa «${companyForm.legal_name}»?`,editingCompany?updateCompany:persistCompany)};
- const persistCompany=async()=>{try{const created=await api('/api/companies',{method:'POST',body:JSON.stringify(companyForm)});setCompanyForm({legal_name:'',identification:'',trade_name:'',phone:'',email:'',address:'',website:'',social:''});await refreshCompanies();setSelected(created.id);setMessage('Empresa registrada.')}catch(err){setMessage(err.message)}};
+ const persistCompany=async()=>{setCompanySaving(true);try{const created=await api('/api/companies',{method:'POST',body:JSON.stringify(companyForm)});resetCompanyForm();await refreshCompanies();setSelected(created.id);setCompanyModalOpen(false);setMessage('Empresa registrada.')}catch(err){setCompanyModalError(err.message)}finally{setCompanySaving(false)}};
  const [editingCompany,setEditingCompany]=useState(null);
- const editCompany=c=>{setEditingCompany(c.id);setCompanyForm({legal_name:c.legal_name,identification:c.identification,trade_name:c.trade_name||'',phone:c.phone||'',email:c.email||'',address:c.address||'',website:c.website||'',social:c.social||''});setTab('companies')};
- const updateCompany=async()=>{try{await api(`/api/companies/${editingCompany}`,{method:'PUT',body:JSON.stringify(companyForm)});await refreshCompanies();setEditingCompany(null);setCompanyForm({legal_name:'',identification:'',trade_name:'',phone:'',email:'',address:'',website:'',social:''});setMessage('Información de empresa actualizada.')}catch(e){setMessage(e.message)}};
+ const createCompanyProfile=()=>{setEditingCompany(null);resetCompanyForm();setCompanyModalError('');setCompanyModalOpen(true)};
+ const openCompanyProfile=c=>{setSelected(c.id);setEditingCompany(c.id);setCompanyForm({legal_name:c.legal_name,identification:c.identification,trade_name:c.trade_name||'',phone:c.phone||'',email:c.email||'',address:c.address||'',website:c.website||'',social:c.social||'',avatar_color:COMPANY_COLORS.includes(c.avatar_color)?c.avatar_color:COMPANY_COLORS[0]});setTab('companies');setCompanyModalError('');setCompanyModalOpen(true)};
+ const editCompany=c=>openCompanyProfile(c);
+ const updateCompany=async()=>{setCompanySaving(true);try{await api(`/api/companies/${editingCompany}`,{method:'PUT',body:JSON.stringify(companyForm)});await refreshCompanies();setEditingCompany(null);resetCompanyForm();setCompanyModalOpen(false);setMessage('Información de empresa actualizada.')}catch(e){setCompanyModalError(e.message)}finally{setCompanySaving(false)}};
  const persistItem=async()=>{try{
    await api(endpoint+(editing?`/${editing}`:''),{method:editing?'PUT':'POST',body:JSON.stringify(tab==='products'?{...form,price_includes_tax:'1'}:form)});
    setForm(tab==='products'?blankProduct:blankClient);setEditing(null);await refreshItems();setMessage('Registro guardado correctamente.');
@@ -447,7 +649,7 @@ function App(){
   askConfirm(tab==='products'?'Editar artículo':'Editar cliente',`¿Deseas editar «${item.description||item.name}»?`,apply);
  };
  const loadMovements=async(productId)=>{try{setMovements(await api(`/api/companies/${selected}/inventory/movements?productId=${productId}`))}catch(e){setMessage(e.message)}};
- const openMovement=item=>{setMovementProduct(item.id);setMoveForm({movement_type:'entrada',quantity:'1',reason:'Compra',notes:''});loadMovements(item.id)};
+ const openMovement=item=>{setMovementProduct(item.id);setMovementTypeFilter('all');setMovementFrom('');setMovementTo('');setMoveForm({movement_type:'entrada',quantity:'1',reason:'Compra',notes:''});loadMovements(item.id)};
  const saveMovement=async(e)=>{e.preventDefault();askConfirm('Registrar movimiento','¿Confirmas este movimiento de inventario? Modificará las existencias del artículo.',()=>persistMovement());};
  const persistMovement=async()=>{try{
   await api(`/api/companies/${selected}/inventory/movements`,{method:'POST',body:JSON.stringify({product_id:movementProduct,...moveForm})});
@@ -459,7 +661,13 @@ function App(){
   if(file.size>700000){setMessage('La imagen debe pesar menos de 700 KB.');return}
   const reader=new FileReader();reader.onload=()=>change('image_data',String(reader.result));reader.readAsDataURL(file);
  };
- const filtered=(Array.isArray(items)?items:[]).filter(item=>Object.entries(item).filter(([k])=>k!=='image_data').some(([,v])=>String(v).toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>{
+ const trackedProducts=(Array.isArray(items)?items:[]).filter(p=>p.kind==='producto'&&Number(p.track_stock)===1);
+ const stockOut=trackedProducts.filter(p=>Number(p.stock)<=0);
+ const stockLow=trackedProducts.filter(p=>Number(p.stock)>0&&Number(p.alert_enabled)===1&&Number(p.stock)<=Number(p.min_stock));
+ const stockNormal=trackedProducts.filter(p=>Number(p.stock)>0&&!(Number(p.alert_enabled)===1&&Number(p.stock)<=Number(p.min_stock)));
+ const matchStockFilter=p=>tab!=='products'||stockFilter==='all'||(p.kind==='producto'&&Number(p.track_stock)===1&&(stockFilter==='out'?Number(p.stock)<=0:stockFilter==='low'?Number(p.stock)>0&&Number(p.alert_enabled)===1&&Number(p.stock)<=Number(p.min_stock):stockFilter==='normal'?Number(p.stock)>0&&!(Number(p.alert_enabled)===1&&Number(p.stock)<=Number(p.min_stock)):true));
+ const filteredMovements=movements.filter(m=>(movementTypeFilter==='all'||m.movement_type===movementTypeFilter)&&(!movementFrom||String(m.created_at).slice(0,10)>=movementFrom)&&(!movementTo||String(m.created_at).slice(0,10)<=movementTo));
+ const filtered=(Array.isArray(items)?items:[]).filter(item=>matchStockFilter(item)&&Object.entries(item).filter(([k])=>k!=='image_data').some(([,v])=>String(v).toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>{
   const label=tab==='clients'?'name':'description';
   const text=(x,y)=>String(x??'').localeCompare(String(y??''),'es',{numeric:true,sensitivity:'base'});
   const num=(x,y)=>Number(x??0)-Number(y??0);
@@ -477,36 +685,23 @@ function App(){
   }
   return result||num(a.id,b.id);
  });
- return <div className="layout"><aside><h1>Factura<span>CR</span></h1><small>Administración multiempresa · v{APP_VERSION}</small><nav>
-  <button className={tab==='companies'?'navactive':''} onClick={()=>setTab('companies')}>Empresas</button>
-  <button className={tab==='clients'?'navactive':''} onClick={()=>setTab('clients')}>Clientes</button>
-  <button className={tab==='products'?'navactive':''} onClick={()=>setTab('products')}>Inventario y servicios</button>
-  <button className={tab==='sales'?'navactive':''} onClick={()=>setTab('sales')}>Ventas</button>
-  <button className={tab==='backups'?'navactive':''} onClick={()=>setTab('backups')}>Respaldos</button><span>Facturas electrónicas · Próximamente</span><span>Usuarios y permisos · Próximamente</span>
- </nav></aside><main><header><h2>{tab==='companies'?'Empresas':tab==='clients'?'Clientes':tab==='backups'?'Respaldos':tab==='sales'?'Punto de venta':'Inventario y servicios'}</h2><p>Información guardada localmente y separada por empresa</p></header>
- {tab!=='companies'&&tab!=='backups'&&<div className="card company-picker"><strong>Empresa activa: {current?`${current.legal_name} · ${current.identification}`:'Sin empresa seleccionada'}</strong><p className="hint">Para cambiar de empresa, entra a la sección Empresas.</p></div>}
+ const activeAccent=colorForCompany(current);
+ const activeAccentSoft=withAlpha(activeAccent,.15);
+ const activeAccentBorder=withAlpha(activeAccent,.42);
+ return <div className="layout"><aside><div className="brandPanel"><div className="brandMark"><img src={appLogo} alt="Logo de FacturaCR"/></div><div className="brandText"><h1>Factura<span>CR</span></h1><small>Gestor electrónico</small></div></div><div className="sidebarCompanyCard"><p className="sidebarEyebrow">Empresa activa</p><div className="sidebarCompanyPicker" ref={companyMenuRef}><button type="button" className={'sidebarCompanyControl '+(companyMenuOpen?'menuOpened':'')} onClick={()=>setCompanyMenuOpen(v=>!v)} aria-label="Cambiar empresa activa" aria-expanded={companyMenuOpen} aria-haspopup="true" style={{borderColor:activeAccentBorder,boxShadow:companyMenuOpen?`0 0 0 2px ${withAlpha(activeAccent,.16)}`:'none',background:companyMenuOpen?`linear-gradient(180deg, ${withAlpha(activeAccent,.18)}, rgba(255,255,255,.08))`:`linear-gradient(180deg, ${withAlpha(activeAccent,.15)}, rgba(255,255,255,.06))`}}><div className="sidebarCompanyAvatar" style={{background:`linear-gradient(180deg, ${activeAccent}, ${activeAccent})`}}>{currentCompanyName.charAt(0).toUpperCase()}</div><div className="sidebarCompanyInfo"><strong title={currentCompanyName} style={{color:activeAccent}}>{currentCompanyName}</strong><small title={currentCompanyMeta}>{currentCompanyMeta}</small></div><UiIcon name="chevron" size={16}/></button>{companyMenuOpen&&<div className="sidebarCompanyDropdown" role="group" aria-label="Empresas disponibles">{companies.length===0?<p className="companyDropdownEmpty">Aún no hay empresas registradas.</p>:companies.map(c=>{const name=c.trade_name||c.legal_name;const accent=colorForCompany(c);return <button key={c.id} type="button" className={'companyDropdownOption '+(selected===c.id?'selected':'')} onClick={()=>{setSelected(c.id);setCompanyMenuOpen(false)}} style={selected===c.id?{background:`linear-gradient(180deg, ${withAlpha(accent,.20)}, rgba(49,82,124,.88))`,borderColor:withAlpha(accent,.55)}:{}}><span className="companyDropdownAvatar" style={{background:`linear-gradient(180deg, ${accent}, ${accent})`}}>{name.charAt(0).toUpperCase()}</span><span className="companyDropdownInfo"><strong style={selected===c.id?{color:accent}:{}}>{name}</strong><small>{c.identification}</small></span>{selected===c.id&&<UiIcon name="check" size={15}/>}</button>})}</div>}</div><button type="button" className="sidebarLinkButton" onClick={createCompanyProfile}><UiIcon name="plus" size={15}/> Nueva empresa</button></div><div className="sidebarNavTitle">Espacio de trabajo</div><nav>
+  <button className={tab==='companies'?'navactive':''} onClick={()=>setTab('companies')}><span className="navIcon"><UiIcon name="office" size={18}/></span><span>Empresas</span></button>
+  <button className={tab==='clients'?'navactive':''} onClick={()=>setTab('clients')}><span className="navIcon"><UiIcon name="idcard" size={18}/></span><span>Clientes</span></button>
+  <button className={tab==='products'?'navactive':''} onClick={()=>setTab('products')}><span className="navIcon"><UiIcon name="package" size={18}/></span><span>Inventario y servicios</span></button>
+  <button className={tab==='quotes'?'navactive':''} onClick={()=>setTab('quotes')}><span className="navIcon"><UiIcon name="receipt" size={18}/></span><span>Cotizaciones / Proformas</span></button>
+  <button className={tab==='sales'?'navactive':''} onClick={()=>setTab('sales')}><span className="navIcon"><UiIcon name="cart" size={18}/></span><span>Ventas</span></button>
+  <button className={tab==='backups'?'navactive':''} onClick={()=>setTab('backups')}><span className="navIcon"><UiIcon name="backup" size={18}/></span><span>Respaldos</span></button><span>Facturas electrónicas · Próximamente</span><span>Usuarios y permisos · Próximamente</span>
+ </nav><div className="sidebarBottom"><div className="sidebarProtection"><span className="sidebarProtectionIcon" aria-hidden="true"><UiIcon name="shield" size={18}/></span><strong>Tus datos, en tu equipo</strong><p>Historial guardado en SQLite. No se envía a la nube.</p></div><button type="button" className="sidebarBackupButton" onClick={()=>setTab('backups')}><span className="navIcon"><UiIcon name="backup" size={18}/></span><span>Respaldar base SQLite</span></button><small>FacturaCR · v{APP_VERSION}</small></div></aside><main>{tab!=='backups'&&<header><h2>{tab==='companies'?'Empresas':tab==='clients'?'Clientes':tab==='sales'?'Punto de venta':tab==='quotes'?'Cotizaciones y proformas':'Inventario y servicios'}</h2><p>Información guardada localmente y separada por empresa</p></header>}
  {message&&<p className="notice" role="status">{message}</p>}
- {tab==='backups'&&<section className="card"><h3>Copias de seguridad de FacturaCR</h3>
-  <p>El respaldo incluye todas las empresas, clientes, productos, fotografías e historial de inventario guardados en SQLite.</p>
-  <p className="hint">Guarda una copia en un disco externo o nube privada. Los respaldos contienen información confidencial y no están cifrados.</p>
-  <p className="hint">Base de datos: {sizeLabel(backupStatus?.databaseBytes)} · WAL temporal: {sizeLabel(backupStatus?.walBytes)} · Espacio libre: {sizeLabel(backupStatus?.freeBytes)} <button type="button" className="secondary" onClick={refreshBackupStatus}>Actualizar espacio</button></p>
-  <div className="actions"><button type="button" disabled={backupBusy} onClick={downloadBackup}>Crear y descargar respaldo</button>
-  <button type="button" disabled={backupBusy} className="danger" onClick={()=>restoreInput.current?.click()}>Restaurar respaldo</button></div>
-  <div className="autoBackupPanel"><h3>Respaldos automáticos · v0.6.4</h3>
-  <label className="backupToggle"><input type="checkbox" checked={!!autoConfig.enabled} onChange={e=>setAutoConfig({...autoConfig,enabled:e.target.checked})}/><span><strong>Activar respaldos automáticos</strong><small>FacturaCR realizará copias de seguridad según la frecuencia y hora que configures.</small></span></label>
-  <div className="two"><Field title="Frecuencia"><select value={autoConfig.frequency} onChange={e=>setAutoConfig({...autoConfig,frequency:e.target.value})}><option value="daily">Diario</option><option value="weekly">Semanal (lunes)</option><option value="monthly">Mensual (día 1)</option></select></Field><Field title="Hora local"><input type="time" value={autoConfig.time} onChange={e=>setAutoConfig({...autoConfig,time:e.target.value})}/></Field></div>
-  <div className="backupRetention"><Field title="Cantidad de respaldos que deseas conservar"><input type="number" min="1" max="365" value={autoConfig.keep} onChange={e=>setAutoConfig({...autoConfig,keep:Number(e.target.value)})}/></Field><p className="hint">Este número indica cuántos archivos de respaldo automático se guardarán como máximo (de 1 a 365). Por ejemplo, con <strong>14</strong> y frecuencia <strong>diaria</strong>, se conservarán aproximadamente las últimas dos semanas. Cuando se cree el respaldo número 15, se eliminará el más antiguo. No es la cantidad de empresas ni de copias por día.</p></div>
-  <div className="actions"><button type="button" disabled={backupBusy} onClick={saveAutoBackup}>Guardar programación</button><button type="button" disabled={backupBusy} className="secondary" onClick={createAutoBackup}>Crear copia automática ahora</button><button type="button" className="secondary" onClick={refreshAutoBackup}>Actualizar listado</button></div>
-  <p className="hint">Carpeta local: {autoBackup?.directory||'Cargando…'}</p><p className="hint">Se guardan copias SQLite verificadas de todas las empresas. Si el programa está cerrado a la hora prevista, el respaldo pendiente se realizará al volver a abrirlo. No se crean tareas de Windows mientras esté cerrado.</p>
-  {autoBackup?.lastError&&<p className="warning">Último error: {autoBackup.lastError}</p>}
-  <strong>Últimos respaldos automáticos</strong>{autoBackup?.files?.length?<ul>{autoBackup.files.slice(0,10).map(f=><li key={f}>{f}</li>)}</ul>:<p className="hint">Aún no se han generado respaldos automáticos.</p>}
-  </div>
-  <input ref={restoreInput} type="file" accept=".sqlite" style={{display:'none'}} onChange={restoreBackup}/>
-  <p className="warning">Restaurar reemplaza toda la información actual. FacturaCR verifica el archivo y guarda una copia previa de la base de datos. Sin límite fijo de restauración: requiere espacio libre suficiente para el archivo y una copia previa.</p>
- </section>}
- {tab==='companies'?<section className="grid"><div className="card"><h3>{editingCompany?"Editar empresa":"Registrar empresa"}</h3><form onSubmit={saveCompany} onKeyDown={e=>{if(e.key==='Enter')e.preventDefault()}}><Field title="Razón social"><input value={companyForm.legal_name} onChange={e=>setCompanyForm({...companyForm,legal_name:e.target.value})} maxLength="160" required/></Field><Field title="Identificación"><input value={companyForm.identification} onChange={e=>setCompanyForm({...companyForm,identification:e.target.value})} pattern="[0-9]{9,12}" required/></Field><Field title="Nombre comercial"><input value={companyForm.trade_name} onChange={e=>setCompanyForm({...companyForm,trade_name:e.target.value})} maxLength="160"/></Field><Field title="Teléfono"><input value={companyForm.phone} onChange={e=>setCompanyForm({...companyForm,phone:e.target.value})} maxLength="160"/></Field><Field title="Correo electrónico"><input value={companyForm.email} onChange={e=>setCompanyForm({...companyForm,email:e.target.value})} maxLength="300"/></Field><Field title="Sitio web"><input value={companyForm.website} onChange={e=>setCompanyForm({...companyForm,website:e.target.value})} maxLength="300"/></Field><Field title="Redes sociales"><input value={companyForm.social} onChange={e=>setCompanyForm({...companyForm,social:e.target.value})} maxLength="300"/></Field><Field title="Dirección comercial"><textarea rows="3" maxLength="300" value={companyForm.address} onChange={e=>setCompanyForm({...companyForm,address:e.target.value})}/></Field><button>{editingCompany?"Guardar cambios":"Guardar empresa"}</button>{editingCompany&&<button type="button" className="secondary" onClick={()=>{setEditingCompany(null);setCompanyForm({legal_name:"",identification:"",trade_name:"",phone:"",email:"",address:"",website:"",social:""})}}>Cancelar edición</button>}</form></div><div className="card"><h3>Empresas registradas</h3>{companies.length===0?<p>No hay empresas.</p>:companies.map(c=><div className="companyrow" key={c.id}><button className={'company '+(selected===c.id?'active':'')} onClick={()=>setSelected(c.id)}><b>{c.legal_name}</b><small>{c.identification}</small></button><button type="button" className="secondary" onClick={()=>editCompany(c)}>Editar datos</button><button type="button" disabled title="Requiere autenticación del propietario" className="secondary">Eliminar · Bloqueado</button></div>)}<p className="hint">Eliminar empresas estará disponible cuando implementemos la cuenta de propietario y verificación de contraseña. No se permite borrar empresas sin autenticación.</p></div></section>:
+ {tab==='backups'&&<BackupWorkspace autoBackup={autoBackup} autoConfig={autoConfig} setAutoConfig={setAutoConfig} backupStatus={backupStatus} busy={backupBusy} downloadBackup={downloadBackup} createAutoBackup={createAutoBackup} saveAutoBackup={saveAutoBackup} refreshAutoBackup={refreshAutoBackup} refreshBackupStatus={refreshBackupStatus} restoreInput={restoreInput} restoreBackup={restoreBackup} setMessage={setMessage} sizeLabel={sizeLabel}/>}
+ {tab==='companies'?<section className="companiesWorkspace"><div className="companiesHero"><div><p className="companiesOverline">Gestión de comprobantes · Costa Rica</p><h3>Perfiles de empresas</h3><p className="hint">Administra los documentos de cada empresa por separado y cambia rápidamente entre ellas.</p></div><button type="button" onClick={createCompanyProfile}><UiIcon name="plus" size={15}/> Nueva empresa</button></div><div className="companiesInlineNotice">Las empresas comparten una base local, pero sus clientes, inventario, ventas y respaldos se manejan por separado.</div><div className="companyProfilesGrid">{companies.map(c=>{const title=c.trade_name||c.legal_name;const subtitle=c.identification||'Sin cédula configurada';const initial=(title||'E').charAt(0).toUpperCase();return <article key={c.id} className={'companyProfileCard '+(selected===c.id?'isSelected':'')}><div className="companyProfileHeader"><div className="companyProfileAvatar" style={{background:`linear-gradient(180deg, ${colorForCompany(c)}, ${colorForCompany(c)})`}}>{initial}</div>{selected===c.id&&<span className="companyProfileBadge">Activa</span>}</div><div className="companyProfileBody"><strong title={title}>{title}</strong><small title={subtitle}>{subtitle}</small></div><div className="companyProfileFooter"><button type="button" className="secondary" onClick={()=>openCompanyProfile(c)}><UiIcon name="store" size={15}/> Abrir perfil</button><div className="actions"><button type="button" className="secondary" onClick={()=>editCompany(c)}><UiIcon name="edit" size={14}/> Editar</button><button type="button" className="secondary" disabled title="Requiere autenticación del propietario"><UiIcon name="trash" size={14}/> Eliminar</button></div></div></article>})}<button type="button" className="companyProfileCard companyAddCard" onClick={createCompanyProfile}><span>＋</span><strong>Agregar empresa</strong><small>Crea un nuevo perfil para tus comprobantes.</small></button></div></section>:
  tab==='backups'?null:
  tab==='sales'?<SalesPanel companyId={selected} company={current} askConfirm={askConfirm}/>: 
+ tab==='quotes'?<QuotesPanel companyId={selected} company={current}/>: 
  !current?<div className="card">Primero registre una empresa.</div>:
  <section className="grid"><div className="card"><h3>{editing?'Editar':'Registrar'} {tab==='clients'?'cliente':'producto o servicio'}</h3><form onSubmit={saveItem} onKeyDown={e=>{if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'){e.preventDefault()}}}>
  {tab==='clients'?<>
@@ -556,7 +751,18 @@ function App(){
  <div className="actions"><button type="button" className="secondary" onClick={exportCatalog}>Exportar CSV para Excel</button><button type="button" className="secondary" onClick={()=>catalogInput.current?.click()}>Seleccionar CSV</button></div>
  <input ref={catalogInput} type="file" accept=".csv,text/csv" style={{display:'none'}} onChange={selectCatalog}/>
  {catalogPreview&&<div className="catalogPreview"><strong>Vista previa: {catalogPreview.name} · {catalogPreview.rows.length} artículos</strong><div className="movementHistory"><table><thead><tr><th>Descripción</th><th>Código / SKU</th><th>Precio</th><th>Existencias</th></tr></thead><tbody>{catalogPreview.rows.slice(0,8).map((r,i)=><tr key={i}><td>{r.description}</td><td>{r.product_code}</td><td>{r.price}</td><td>{r.stock||0}</td></tr>)}</tbody></table></div><p className="hint">Se muestran los primeros 8 artículos. La importación es todo o nada: si una fila falla, no se guarda ninguna.</p><div className="actions"><button type="button" disabled={catalogBusy} onClick={importCatalog}>Confirmar importación</button><button type="button" className="secondary" onClick={()=>setCatalogPreview(null)}>Cancelar</button></div></div>}
- </div>}{tab==='products'&&<div className="catalogTools"><h4>Exportar movimientos de inventario</h4><p className="hint">Incluye todo el historial, también de artículos eliminados. El archivo CSV conserva códigos y nombres con acentos.</p><div className="two"><Field title="Artículos incluidos"><select value={movementExportStatus} onChange={e=>setMovementExportStatus(e.target.value)}><option value="all">Activos y eliminados</option><option value="active">Solo activos</option><option value="deleted">Solo eliminados</option></select></Field><Field title="Orden de exportación"><select value={movementExportSort} onChange={e=>setMovementExportSort(e.target.value)}><option value="az">Artículo A–Z</option><option value="za">Artículo Z–A</option><option value="newest">Movimientos más recientes</option><option value="oldest">Movimientos más antiguos</option></select></Field></div><div className="actions"><button type="button" className="secondary" onClick={exportMovements}>Exportar movimientos CSV</button></div></div>}<Field title="Buscar"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={tab==='clients'?'Nombre e identificación':'Producto, código y SKU'}/></Field><Field title="Ordenar por"><select value={sortBy} onChange={e=>changeSort(e.target.value)}>
+ </div>}{tab==='products'&&<div className="catalogTools"><h4>Actualizar precios, existencias y CABYS desde CSV</h4>
+ <p className="hint">Exporta el catálogo CSV anterior, edita en Excel las columnas de precio, existencias y/o CABYS y guárdalo como CSV. Se buscan artículos existentes por SKU o código de barras. No se crean productos ni se modifican los que falten en el archivo.</p>
+ <div className="actions"><button type="button" className="secondary" onClick={()=>bulkInput.current?.click()} disabled={bulkBusy}>Seleccionar CSV para actualizar</button><label><input type="checkbox" checked={bulkPrice} onChange={e=>{setBulkPrice(e.target.checked);setBulkPreview(null)}}/> Actualizar precios</label><label><input type="checkbox" checked={bulkStock} onChange={e=>{setBulkStock(e.target.checked);setBulkPreview(null)}}/> Ajustar existencias</label><label><input type="checkbox" checked={bulkCabys} onChange={e=>{setBulkCabys(e.target.checked);setBulkPreview(null)}}/> Actualizar CABYS</label></div>
+ <input ref={bulkInput} type="file" accept=".csv,text/csv" style={{display:'none'}} onChange={selectBulkFile}/>
+ {bulkFile&&<div className="catalogPreview"><strong>{bulkFile.name} · {bulkFile.rows.length} filas</strong><p className="hint">La actualización es atómica: si hay errores, no se cambia ningún producto. Las existencias son el conteo final, no entradas adicionales. Se registran sus movimientos.</p><div className="actions"><button type="button" disabled={bulkBusy||(!bulkPrice&&!bulkStock&&!bulkCabys)} onClick={previewBulk}>Validar y mostrar cambios</button><button type="button" className="secondary" onClick={()=>{setBulkFile(null);setBulkPreview(null)}}>Cancelar</button></div></div>}
+ {bulkPreview&&<div className="catalogPreview bulkPreview"><strong>Vista previa: {bulkPreview.changed} artículos cambian de {bulkPreview.rows.length}</strong><div className="bulkPreviewList">{bulkPreview.rows.slice(0,20).map(r=><div className="bulkPreviewItem" key={r.id}><div className="bulkProduct"><strong>{r.description}</strong><small>SKU / código: {r.product_code||r.barcode}</small></div><div className="bulkChanges">{bulkPreview.updatePrice&&<div><span>Precio</span><strong>{r.old_price} → {r.new_price}</strong></div>}{bulkPreview.updateStock&&<div><span>Existencias</span><strong>{r.old_stock} → {r.new_stock}</strong></div>}{bulkPreview.updateCabys&&<div><span>CABYS</span><strong className="bulkCabysValue">{r.old_cabys||'Sin código'} → {r.new_cabys}</strong></div>}</div></div>)}</div><p className="hint">Se muestran hasta 20 filas. Revisa el archivo antes de confirmar; cualquier error cancela el lote completo.</p><button type="button" disabled={bulkBusy||!bulkPreview.changed} onClick={applyBulk}>Confirmar actualización de {bulkPreview.changed} artículos</button></div>}
+ </div>}{tab==='products'&&<div className="catalogTools"><h4>Exportar movimientos de inventario</h4><p className="hint">Incluye todo el historial, también de artículos eliminados. El archivo CSV conserva códigos y nombres con acentos.</p><div className="two"><Field title="Artículos incluidos"><select value={movementExportStatus} onChange={e=>setMovementExportStatus(e.target.value)}><option value="all">Activos y eliminados</option><option value="active">Solo activos</option><option value="deleted">Solo eliminados</option></select></Field><Field title="Orden de exportación"><select value={movementExportSort} onChange={e=>setMovementExportSort(e.target.value)}><option value="az">Artículo A–Z</option><option value="za">Artículo Z–A</option><option value="newest">Movimientos más recientes</option><option value="oldest">Movimientos más antiguos</option></select></Field></div><div className="actions"><button type="button" className="secondary" onClick={exportMovements}>Exportar movimientos CSV</button></div></div>}{tab==='products'&&<div className="inventoryDashboard"><div className="inventoryDashboardHead"><h4>Estado del inventario</h4><p className="hint">Solo productos con control de existencias. Las alertas de stock bajo respetan el mínimo configurado por artículo.</p></div><div className="inventoryFilterCards">
+ <button type="button" className={'inventoryFilterCard '+(stockFilter==='all'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('all')}><span>Todos</span><strong>{trackedProducts.length}</strong></button>
+ <button type="button" className={'inventoryFilterCard inventoryDanger '+(stockFilter==='out'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('out')}><span>Agotados</span><strong>{stockOut.length}</strong></button>
+ <button type="button" className={'inventoryFilterCard inventoryWarning '+(stockFilter==='low'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('low')}><span>Stock bajo</span><strong>{stockLow.length}</strong></button>
+ <button type="button" className={'inventoryFilterCard '+(stockFilter==='normal'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('normal')}><span>Disponibles</span><strong>{stockNormal.length}</strong></button>
+ </div>{stockFilter!=='all'&&<div className="actions"><span className="hint">Filtro activo: {stockFilter==='out'?'agotados':stockFilter==='low'?'stock bajo':'disponibles'}</span><button type="button" className="secondary" onClick={()=>setStockFilter('all')}>Quitar filtro</button></div>}</div>}<Field title="Buscar"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={tab==='clients'?'Nombre e identificación':'Producto, código y SKU'}/></Field><Field title="Ordenar por"><select value={sortBy} onChange={e=>changeSort(e.target.value)}>
  <option value="az">Nombre A–Z</option><option value="za">Nombre Z–A</option>
  <option value="newest">Más recientes</option><option value="oldest">Más antiguos</option>
  {tab==='clients'?<option value="identification">Número de identificación</option>:<>
@@ -565,13 +771,26 @@ function App(){
  </>}</select></Field><p className="hint">{filtered.length} registro(s) encontrados · Preferencia guardada por empresa y módulo.</p><div className="records">{filtered.length===0?<p>No hay registros.</p>:filtered.map(item=><article className="record" key={item.id}>
  {tab==='products'&&<div className="thumbWrap">{item.image_data?<img className="thumb" src={item.image_data} alt={`Foto de ${item.description}`}/>:<div className="thumb thumbEmpty">Sin foto</div>}</div>}
  <div className="recordcontent"><b>{tab==='clients'?item.name:item.description}</b><small>{tab==='clients'?`${item.identification} · ${item.email||'Sin correo'} · ${item.phone||'Sin teléfono'}`:`${item.product_code||'Sin SKU'} · ${item.currency} ${Number(item.price).toFixed(2)} · IVA ${item.tax_rate}% · ${item.kind}`}</small>
- {tab==='products'&&item.kind==='producto'&&Number(item.track_stock)===1&&<small className={Number(item.alert_enabled)===1&&Number(item.stock)<=Number(item.min_stock)?'low':''}>Existencias: {item.stock} {item.unit} {Number(item.alert_enabled)===1&&Number(item.stock)<=Number(item.min_stock)?'· STOCK BAJO':''}</small>}</div>
- <div className="actions">{tab==='products'&&item.kind==='producto'&&Number(item.track_stock)===1&&<button className="secondary" onClick={()=>openMovement(item)}>Movimientos</button>}<button className="secondary" onClick={()=>edit(item)}>Editar</button><button className="danger" onClick={()=>remove(item)}>Eliminar</button></div></article>)}</div></div></section>}
+ {tab==='products'&&item.kind==='producto'&&Number(item.track_stock)===1&&<small className={Number(item.stock)<=0?'stockOut':Number(item.alert_enabled)===1&&Number(item.stock)<=Number(item.min_stock)?'low':''}>Existencias: {item.stock} {item.unit} · Mínimo: {item.min_stock} {Number(item.stock)<=0?'· AGOTADO':Number(item.alert_enabled)===1&&Number(item.stock)<=Number(item.min_stock)?'· STOCK BAJO':''}</small>}</div>
+ <div className="actions">{tab==='products'&&item.kind==='producto'&&Number(item.track_stock)===1&&<button className="secondary" onClick={()=>openMovement(item)}>Movimientos</button>}<button className="secondary" onClick={()=>edit(item)}><UiIcon name="edit" size={14}/> Editar</button><button className="danger" onClick={()=>remove(item)}><UiIcon name="trash" size={14}/> Eliminar</button></div></article>)}</div></div></section>}
  {tab==='products'&&movementProduct&&<section className="card movementPanel"><h3>Entradas, salidas y ajustes · {items.find(p=>p.id===movementProduct)?.description||'Producto'}</h3>
  <form onSubmit={saveMovement}><div className="three"><Field title="Tipo de movimiento"><select value={moveForm.movement_type} onChange={e=>setMoveForm({...moveForm,movement_type:e.target.value,reason:e.target.value==='entrada'?'Compra':e.target.value==='salida'?'Venta':'Conteo físico'})}><option value="entrada">Entrada (sumar)</option><option value="salida">Salida (restar)</option><option value="ajuste">Ajuste (saldo final)</option></select></Field><Field title={moveForm.movement_type==='ajuste'?'Existencias finales':'Cantidad'}><input type="number" min="1" step="1" required value={moveForm.quantity} onChange={e=>setMoveForm({...moveForm,quantity:e.target.value})}/></Field><Field title="Motivo"><input required maxLength="120" value={moveForm.reason} onChange={e=>setMoveForm({...moveForm,reason:e.target.value})}/></Field></div><Field title="Observaciones"><input maxLength="500" value={moveForm.notes} onChange={e=>setMoveForm({...moveForm,notes:e.target.value})}/></Field><div className="actions"><button type="submit">Registrar movimiento</button><button type="button" className="secondary" onClick={()=>setMovementProduct(null)}>Cerrar</button></div></form>
- <h4>Historial (últimos 300 movimientos)</h4><div className="movementHistory"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cambio</th><th>Antes</th><th>Después</th><th>Motivo</th></tr></thead><tbody>{movements.map(m=><tr key={m.id}><td>{m.created_at}</td><td>{m.movement_type}</td><td>{m.delta>0?'+':''}{m.delta}</td><td>{m.stock_before}</td><td>{m.stock_after}</td><td>{m.reason}</td></tr>)}</tbody></table></div></section>}
+ <h4>Historial de movimientos (últimos 300 registros)</h4><div className="movementFilters"><Field title="Tipo"><select value={movementTypeFilter} onChange={e=>setMovementTypeFilter(e.target.value)}><option value="all">Todos</option><option value="entrada">Entradas</option><option value="salida">Salidas</option><option value="ajuste">Ajustes</option></select></Field><Field title="Desde"><input type="date" value={movementFrom} onChange={e=>setMovementFrom(e.target.value)} max={movementTo||undefined}/></Field><Field title="Hasta"><input type="date" value={movementTo} onChange={e=>setMovementTo(e.target.value)} min={movementFrom||undefined}/></Field></div><p className="hint">{filteredMovements.length} movimiento(s) visibles · Total de entradas: {filteredMovements.filter(m=>Number(m.delta)>0).reduce((sum,m)=>sum+Number(m.delta),0)} unidades · Total de salidas: {Math.abs(filteredMovements.filter(m=>Number(m.delta)<0).reduce((sum,m)=>sum+Number(m.delta),0))} unidades. Los ajustes se reflejan según su diferencia real.</p><div className="movementHistory"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Cambio</th><th>Antes</th><th>Después</th><th>Motivo / observaciones</th></tr></thead><tbody>{filteredMovements.map(m=><tr key={m.id}><td>{m.created_at}</td><td>{m.movement_type}</td><td>{m.delta>0?'+':''}{m.delta}</td><td>{m.stock_before}</td><td>{m.stock_after}</td><td>{m.reason}{m.notes?<><br/><small>{m.notes}</small></>:null}</td></tr>)}{filteredMovements.length===0&&<tr><td colSpan="6">No hay movimientos para los filtros seleccionados.</td></tr>}</tbody></table></div></section>}
  <p className="warning">Versión de desarrollo: la eliminación de empresas está bloqueada hasta implementar autenticación. El catálogo territorial se carga desde una fuente pública y debe revisarse antes de emitir comprobantes; CABYS requiere verificación oficial. El inventario registra movimientos manuales y automáticos por ventas internas. No emite XML ni factura electrónica de Hacienda.</p>
- </main>{dialog&&<div className="dialogOverlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)closeDialog()}}><section className="dialogCard" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-description" onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();closeDialog()}}}>
+ </main>{companyModalOpen&&<div className="companyModalOverlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)closeCompanyModal()}}><section className="companyModal" role="dialog" aria-modal="true" aria-labelledby="company-modal-title" onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();closeCompanyModal()}}}>
+  <div className="companyModalHeader"><div><p className="companiesOverline">Perfiles independientes</p><h2 id="company-modal-title">{editingCompany?'Editar empresa':'Registrar nueva empresa'}</h2><p>Los datos comerciales se guardarán únicamente en este perfil.</p></div><button type="button" className="companyModalClose" aria-label="Cerrar ventana" onClick={closeCompanyModal} disabled={companySaving}><UiIcon name="close" size={19}/></button></div>
+  <form className="companyModalForm" onSubmit={saveCompany}>
+   {companyModalError&&<p className="companyModalError" role="alert">{companyModalError}</p>}
+   <div className="companyModalFields"><Field title="Razón social o nombre de la empresa *"><input autoFocus required maxLength="160" placeholder="Ej. Comercial La Esperanza S.A." value={companyForm.legal_name} onChange={e=>setCompanyForm({...companyForm,legal_name:e.target.value})}/></Field>
+   <div className="companyModalTwo"><Field title="Identificación *"><input required pattern="[0-9]{9,12}" maxLength="12" inputMode="numeric" placeholder="Cédula de 9 a 12 dígitos" value={companyForm.identification} onChange={e=>setCompanyForm({...companyForm,identification:e.target.value})}/></Field><Field title="Teléfono"><input maxLength="160" placeholder="8888-8888" value={companyForm.phone} onChange={e=>setCompanyForm({...companyForm,phone:e.target.value})}/></Field></div>
+   <Field title="Nombre comercial"><input maxLength="160" placeholder="Nombre que verá en el punto de venta" value={companyForm.trade_name} onChange={e=>setCompanyForm({...companyForm,trade_name:e.target.value})}/></Field>
+   <Field title="Correo electrónico"><input type="email" maxLength="300" placeholder="contabilidad@empresa.com" value={companyForm.email} onChange={e=>setCompanyForm({...companyForm,email:e.target.value})}/></Field>
+   <Field title="Dirección comercial"><textarea rows="2" maxLength="300" placeholder="Ubicación de la empresa" value={companyForm.address} onChange={e=>setCompanyForm({...companyForm,address:e.target.value})}/></Field>
+   <div className="companyModalTwo"><Field title="Sitio web"><input maxLength="300" placeholder="https://..." value={companyForm.website} onChange={e=>setCompanyForm({...companyForm,website:e.target.value})}/></Field><Field title="Redes sociales"><input maxLength="300" placeholder="Cuenta o enlace" value={companyForm.social} onChange={e=>setCompanyForm({...companyForm,social:e.target.value})}/></Field></div>
+   <div className="companyColorArea"><div><strong className="companyColorHeading">Color de identificación</strong><p className="hint">Identifica visualmente tu empresa en las tarjetas y el menú lateral.</p><div className="companyColorChoices" role="group" aria-label="Color de identificación">{COMPANY_COLORS.map(color=><button key={color} type="button" aria-label={`Elegir color ${color}`} aria-pressed={companyForm.avatar_color===color} className={'companyColorOption '+(companyForm.avatar_color===color?'isActive':'')} style={{backgroundColor:color}} onClick={()=>setCompanyForm(prev=>({...prev,avatar_color:color}))}>{companyForm.avatar_color===color&&<UiIcon name="check" size={19}/>}</button>)}</div></div><div className="companyColorPreview"><small>Vista previa</small><div className="companyColorPreviewRow"><span className="companyColorPreviewAvatar" style={{background:`linear-gradient(180deg, ${companyForm.avatar_color||COMPANY_COLORS[0]}, ${companyForm.avatar_color||COMPANY_COLORS[0]})`}}>{(companyForm.trade_name||companyForm.legal_name||'E').charAt(0).toUpperCase()}</span><span><strong>{companyForm.trade_name||companyForm.legal_name||'Nombre de empresa'}</strong><small>{companyForm.identification||'Identificación'}</small></span></div></div></div><p className="companyModalInfo"><UiIcon name="shield" size={16}/> La información permanece en tu equipo. La identificación es obligatoria para registrar la empresa.</p></div>
+   <div className="companyModalFooter"><button type="button" className="secondary" onClick={closeCompanyModal} disabled={companySaving}>Cancelar</button><button type="submit" disabled={companySaving}>{companySaving?'Guardando…':editingCompany?'Guardar cambios':'✓ Crear empresa'}</button></div>
+  </form>
+ </section></div>}{dialog&&<div className="dialogOverlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)closeDialog()}}><section className="dialogCard" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-description" onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();closeDialog()}}}>
   <div className="dialogSymbol" aria-hidden="true">{dialog.danger?'!':'✓'}</div>
   <h3 id="dialog-title">{dialog.title}</h3><p id="dialog-description">{dialog.description}</p>
   <div className="dialogActions"><button type="button" className="secondary" autoFocus onClick={closeDialog}>Cancelar</button><button type="button" className={dialog.danger?'danger':''} onClick={confirmDialog}>{dialog.danger?'Eliminar':'Confirmar'}</button></div>

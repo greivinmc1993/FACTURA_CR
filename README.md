@@ -3,7 +3,7 @@
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.9.2-blue" alt="Versión 0.6.10" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.10-blue" alt="Versión 0.6.10" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>

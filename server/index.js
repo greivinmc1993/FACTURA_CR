@@ -1,7 +1,7 @@
 import { makeXlsx } from './xlsx.js';
 import express from 'express';
 import Database from 'better-sqlite3';
-import { mkdirSync, mkdtempSync, unlinkSync, renameSync, existsSync, rmSync, createWriteStream, statSync, statfsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, unlinkSync, renameSync, existsSync, rmSync, createWriteStream, statSync, statfsSync, readFileSync, writeFileSync, readdirSync, copyFileSync } from 'node:fs';
 import { pipeline } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -25,7 +25,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     tax_code:"TEXT NOT NULL DEFAULT '08'", unit:"TEXT NOT NULL DEFAULT 'Unid'",
     stock:"REAL NOT NULL DEFAULT 0", min_stock:"REAL NOT NULL DEFAULT 0",
     track_stock:"INTEGER NOT NULL DEFAULT 1", barcode:"TEXT NOT NULL DEFAULT ''",
-    cost:"REAL NOT NULL DEFAULT 0", notes:"TEXT NOT NULL DEFAULT ''"
+    cost:"REAL NOT NULL DEFAULT 0", price_includes_tax:"INTEGER NOT NULL DEFAULT 0", notes:"TEXT NOT NULL DEFAULT ''"
   };
   function migrateDatabase() {
   db.exec(`CREATE TABLE IF NOT EXISTS companies (
@@ -34,6 +34,11 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     identification TEXT NOT NULL UNIQUE,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );`);
+  // Migración compatible con bases de datos existentes y respaldos antiguos.
+  const companyColumns = db.prepare('PRAGMA table_info(companies)').all().map(c=>c.name);
+  for (const field of ['trade_name','phone','email','address','website','social']) {
+    if (!companyColumns.includes(field)) db.exec(`ALTER TABLE companies ADD COLUMN ${field} TEXT NOT NULL DEFAULT ''`);
+  }
   db.exec(`CREATE TABLE IF NOT EXISTS clients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -105,6 +110,10 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
   );
   CREATE INDEX IF NOT EXISTS idx_sales_company_date ON sales(company_id,created_at);
   CREATE INDEX IF NOT EXISTS idx_sales_client ON sales(company_id,client_id);`);
+  // Campos reservados para comprobantes realmente emitidos por Hacienda.
+  addColumn('sales','fe_consecutivo',"TEXT NOT NULL DEFAULT ''");
+  addColumn('sales','fe_clave',"TEXT NOT NULL DEFAULT ''");
+  addColumn('sales','fe_estado',"TEXT NOT NULL DEFAULT ''");
   // Los códigos internos se validan por empresa en las operaciones nuevas.
   }
   migrateDatabase();
@@ -122,6 +131,68 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       }
     }
   }
+  // Automatic backups are stored outside the SQLite file, using SQLite's online backup API.
+  const automaticDir=join(dataDir,'automatic-backups');
+  const backupConfigPath=join(dataDir,'automatic-backup-settings.json');
+  const backupDefaults={enabled:false,frequency:'daily',time:'20:00',keep:14};
+  const loadBackupConfig=()=>{
+    try {const raw=JSON.parse(readFileSync(backupConfigPath,'utf8'));return {...backupDefaults,...raw};}
+    catch{return {...backupDefaults}}
+  };
+  let backupConfig=loadBackupConfig();
+  let backupBusy=false;
+  let lastBackupError='';
+  const backupFiles=()=>{
+    if(!existsSync(automaticDir))return [];
+    return readdirSync(automaticDir).filter(f=>/^FacturaCR_auto_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.sqlite$/.test(f)).sort().reverse();
+  };
+  const backupDue=()=>{
+    if(!backupConfig.enabled)return false;
+    const now=new Date();
+    const [hour,minute]=backupConfig.time.split(':').map(Number);
+    const scheduled=new Date(now);scheduled.setHours(hour,minute,0,0);
+    if(now<scheduled)return false;
+    const latest=backupFiles()[0];if(!latest)return true;
+    const datePart=latest.slice('FacturaCR_auto_'.length,-'.sqlite'.length);
+    const last=new Date(datePart.replace(/T(\d{2})-(\d{2})-(\d{2})$/,'T$1:$2:$3'));
+    if(Number.isNaN(last.getTime()))return true;
+    if(backupConfig.frequency==='daily')return last.toDateString()!==now.toDateString();
+    if(backupConfig.frequency==='weekly'){
+      const start=new Date(now);start.setHours(0,0,0,0);start.setDate(start.getDate()-((start.getDay()+6)%7));return last<start;
+    }
+    return last.getFullYear()!==now.getFullYear()||last.getMonth()!==now.getMonth();
+  };
+  const runAutoBackup=async(force=false)=>{
+    if(backupBusy||(!force&&!backupDue()))return {created:false};
+    backupBusy=true;
+    try{
+      mkdirSync(automaticDir,{recursive:true});
+      const stamp=new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+      const target=join(automaticDir,`FacturaCR_auto_${stamp}.sqlite`);
+      await db.backup(target);
+      const check=new Database(target,{readonly:true,fileMustExist:true});
+      try{if(check.pragma('integrity_check',{simple:true})!=='ok')throw Error('Falló la verificación de integridad.');}finally{check.close()}
+      const files=backupFiles();
+      for(const f of files.slice(backupConfig.keep))try{unlinkSync(join(automaticDir,f))}catch(e){console.warn('Retención:',e.message)}
+      lastBackupError='';return {created:true,file:target.split(/[\\/]/).pop()};
+    }catch(e){lastBackupError=e.message;console.error('Respaldo automático:',e);throw e}
+    finally{backupBusy=false}
+  };
+  const backupTimer=setInterval(()=>{void runAutoBackup().catch(()=>{})},60000);
+  backupTimer.unref?.();
+  // At launch, catch up on a missed scheduled backup when the program was closed.
+  setTimeout(()=>{void runAutoBackup().catch(()=>{})},2500).unref?.();
+  app.get('/api/backups/automatic',(_req,res)=>res.json({config:backupConfig,files:backupFiles(),directory:automaticDir,lastError:lastBackupError,busy:backupBusy}));
+  app.put('/api/backups/automatic', (req,res)=>{
+    const {enabled,frequency,time,keep}=req.body||{};
+    if(typeof enabled!=='boolean'||!['daily','weekly','monthly'].includes(frequency)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||!Number.isInteger(keep)||keep<1||keep>365)return res.status(400).json({error:'Configuración de respaldos inválida.'});
+    backupConfig={enabled,frequency,time,keep};
+    try{writeFileSync(backupConfigPath,JSON.stringify(backupConfig,null,2));res.json({ok:true,config:backupConfig})}
+    catch(e){res.status(500).json({error:'No se pudieron guardar las preferencias: '+e.message})}
+  });
+  app.post('/api/backups/automatic/run',async(_req,res)=>{
+    try{res.json(await runAutoBackup(true))}catch(e){res.status(500).json({error:e.message})}
+  });
   // Backups: use SQLite's online backup API (safe with WAL enabled).
   // Restoration is deliberately restricted to a complete, validated SQLite file.
   app.get('/api/backups/download', async (_req,res)=>{
@@ -141,7 +212,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       if(!res.headersSent)res.status(500).json({error:'No se pudo crear el respaldo.'});
     }
   });
-  app.get('/api/health',(_req,res)=>res.json({ok:true,version:'0.6.0',backups:true}));
+  app.get('/api/health',(_req,res)=>res.json({ok:true,version:'0.6.4',backups:true}));
   app.get('/api/backups/status',(_req,res)=>{
     try {
       const fs=statfsSync(dataDir);
@@ -208,21 +279,36 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.status(400).json({error:'No se pudo restaurar: '+err.message});
     }finally{await cleanTempDir(dir)}
   });
-  app.get('/api/companies', (_req,res) => res.json(db.prepare('SELECT id,legal_name,identification FROM companies ORDER BY id DESC').all()));
+  app.get('/api/companies', (_req,res) => res.json(db.prepare('SELECT id,legal_name,identification,trade_name,phone,email,address,website,social FROM companies ORDER BY id DESC').all()));
   app.post('/api/companies',(req,res)=>{
     const legal_name = String(req.body?.legal_name ?? '').trim();
     const identification = String(req.body?.identification ?? '').trim();
+    const extra = Object.fromEntries(['trade_name','phone','email','address','website','social'].map(k=>[k,String(req.body?.[k]??'').trim()]));
+    if(Object.values(extra).some(v=>v.length>300))return res.status(400).json({error:'Los datos adicionales no pueden superar 300 caracteres.'});
     if (!legal_name || legal_name.length > 160 || !/^\d{9,12}$/.test(identification)) {
       return res.status(400).json({error:'Ingrese una razón social (máx. 160 caracteres) y una identificación de 9 a 12 dígitos.'});
     }
     try {
-      const result = db.prepare('INSERT INTO companies(legal_name,identification) VALUES (?,?)').run(legal_name,identification);
-      res.status(201).json({id:Number(result.lastInsertRowid),legal_name,identification});
+      const result = db.prepare('INSERT INTO companies(legal_name,identification,trade_name,phone,email,address,website,social) VALUES (?,?,?,?,?,?,?,?)').run(legal_name,identification,...Object.values(extra));
+      res.status(201).json({id:Number(result.lastInsertRowid),legal_name,identification,...extra});
     } catch (err) {
       if (err.code?.startsWith('SQLITE_CONSTRAINT')) return res.status(409).json({error:'La identificación ya está registrada.'});
       console.error(err);
       res.status(500).json({error:'No se pudo guardar la empresa.'});
     }
+  });
+  app.put('/api/companies/:id', (req,res)=>{
+    const id=Number(req.params.id);
+    if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Empresa inválida.'});
+    const previous=db.prepare('SELECT * FROM companies WHERE id=?').get(id);
+    if(!previous)return res.status(404).json({error:'Empresa no encontrada.'});
+    const fields=['legal_name','identification','trade_name','phone','email','address','website','social'];
+    const values=Object.fromEntries(fields.map(k=>[k,String(req.body?.[k]??previous[k]??'').trim()]));
+    if(!values.legal_name||values.legal_name.length>160||!/^[0-9]{9,12}$/.test(values.identification)||fields.slice(2).some(k=>values[k].length>300))return res.status(400).json({error:'Revise los datos de la empresa.'});
+    try{
+      db.prepare(`UPDATE companies SET ${fields.map(k=>k+'=?').join(',')} WHERE id=?`).run(...fields.map(k=>values[k]),id);
+      res.json(db.prepare('SELECT * FROM companies WHERE id=?').get(id));
+    }catch(err){res.status(err.code?.startsWith('SQLITE_CONSTRAINT')?409:500).json({error:'No se pudo actualizar la empresa.'});}
   });
   // All records are scoped to an existing company. Parameters are bound in SQL.
   const configs = {
@@ -259,6 +345,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
         const tariffs={'01':0,'02':1,'03':2,'04':4,'05':0,'06':4,'07':8,'08':13,'09':0.5,'10':0,'11':0};
         if (!(v.tax_code in tariffs)) throw Error('Seleccione una tarifa de IVA válida.');
         v.tax_rate=tariffs[v.tax_code];
+        v.price_includes_tax = v.price_includes_tax==='1'?1:0;
         for (const k of ['price','stock','min_stock','cost']) {
           const n=Number(v[k]);
           if (!Number.isFinite(n) || n<0 || n>1e12) throw Error('Revise precio, costo y existencias.');
@@ -330,7 +417,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     try {
       const validated=rows.map((row,index)=>{
         try {
-          const v={kind:'producto',product_code:'',barcode:'',description:'',cabys:'',price:'0',cost:'0',currency:'CRC',tax_code:'08',unit:'Unid',stock:'0',min_stock:'0',track_stock:'1',alert_enabled:'1',notes:'',image_data:'',...row};
+          const v={kind:'producto',product_code:'',barcode:'',description:'',cabys:'',price:'0',cost:'0',currency:'CRC',tax_code:'08',unit:'Unid',stock:'0',min_stock:'0',track_stock:'1',alert_enabled:'1',notes:'',image_data:'',price_includes_tax:'1',...row};
           // Nunca importar imágenes en este flujo; se añaden desde el formulario.
           v.image_data='';
           return configs.products.parse(v);
@@ -496,6 +583,30 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.json(rows);
     }catch(e){res.status(400).json({error:e.message})}
   });
+  // Histórico completo de créditos y abonos, limitado a la empresa solicitada.
+  app.get('/api/companies/:companyId/credit-history',(req,res)=>{
+    try{
+      const companyId=saleCompany(req);
+      const rows=db.prepare(`SELECT s.id,s.client_id,COALESCE(c.name,'Cliente sin nombre') AS client_name,
+        s.created_at,s.status,s.total_cents,s.paid_cents,s.balance_cents,s.annulled_at,
+        (SELECT COUNT(*) FROM sale_payments p WHERE p.sale_id=s.id) AS payment_count
+        FROM sales s LEFT JOIN clients c ON c.id=s.client_id
+        WHERE s.company_id=? AND s.sale_type='credito' ORDER BY s.id DESC`).all(companyId);
+      res.json(rows);
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  app.get('/api/companies/:companyId/credit-history/payments',(req,res)=>{
+    try{
+      const companyId=saleCompany(req);
+      const rows=db.prepare(`SELECT p.id,p.sale_id,p.created_at,p.method,p.amount_cents,
+        COALESCE(c.name,'Cliente sin nombre') AS client_name,s.status
+        FROM sale_payments p JOIN sales s ON s.id=p.sale_id
+        LEFT JOIN clients c ON c.id=s.client_id
+        WHERE s.company_id=? AND s.sale_type='credito'
+        ORDER BY p.created_at DESC,p.id DESC`).all(companyId);
+      res.json(rows);
+    }catch(e){res.status(400).json({error:e.message})}
+  });
   app.get('/api/companies/:companyId/sales/export.csv',(req,res)=>{
     try{
       const companyId=saleCompany(req);
@@ -511,7 +622,8 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       const companyId=saleCompany(req),id=Number(req.params.saleId);
       const sale=db.prepare('SELECT * FROM sales WHERE id=? AND company_id=?').get(id,companyId);
       if(!sale)return res.status(404).json({error:'Venta no encontrada.'});
-      res.json({...sale,lines:db.prepare('SELECT * FROM sale_lines WHERE sale_id=? ORDER BY id').all(id),payments:db.prepare('SELECT * FROM sale_payments WHERE sale_id=? ORDER BY id').all(id)});
+      const client=sale.client_id?db.prepare('SELECT name,trade_name,identification_type,identification,email,phone,address,province,canton,district FROM clients WHERE id=? AND company_id=?').get(sale.client_id,companyId):null;
+      res.json({...sale,client,lines:db.prepare('SELECT * FROM sale_lines WHERE sale_id=? ORDER BY id').all(id),payments:db.prepare('SELECT * FROM sale_payments WHERE sale_id=? ORDER BY id').all(id)});
     }catch(e){res.status(400).json({error:e.message})}
   });
   app.post('/api/companies/:companyId/sales',(req,res)=>{
@@ -524,7 +636,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       if(clientId&&!db.prepare('SELECT id FROM clients WHERE id=? AND company_id=?').get(clientId,companyId))throw Error('Cliente no pertenece a esta empresa.');
       if(!Array.isArray(body.lines)||!body.lines.length||body.lines.length>100)throw Error('Agrega entre 1 y 100 líneas.');
       if(!Array.isArray(body.payments)||body.payments.length>10)throw Error('Pagos inválidos.');
-      const discount=cents(body.discount||0);
+      const discount=Math.round(cents(body.discount||0)/100)*100;
       const unique=new Set(body.lines.map(l=>String(l.product_id)));
       if(unique.size!==body.lines.length)throw Error('Hay artículos duplicados en el carrito. Agrupa las cantidades.');
       const result=db.transaction(()=>{
@@ -535,7 +647,8 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
           const product=db.prepare('SELECT * FROM products WHERE id=? AND company_id=? AND is_deleted=0').get(productId,companyId);
           if(!product)throw Error('Un artículo no existe o fue eliminado.');
           if(product.currency!=='CRC')throw Error(`«${product.description}» está en USD. Configura su precio en CRC antes de venderlo.`);
-          const unit=cents(product.price),lineSubtotal=unit*quantity;
+          const rawUnit=Number(product.price_includes_tax)===1?Math.round(cents(product.price)/(1+Number(product.tax_rate)/100)):cents(product.price);
+          const unit=Math.round(rawUnit/100)*100,lineSubtotal=unit*quantity;
           if(!Number.isSafeInteger(lineSubtotal)||lineSubtotal>1e12)throw Error('Importe demasiado grande.');
           subtotal+=lineSubtotal;
           return {product,quantity,unit,lineSubtotal};
@@ -544,16 +657,16 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
         // Descuento proporcional por línea, con remanente asignado a la última.
         let distributed=0;
         const detailed=lines.map((line,i)=>{
-          const part=i===lines.length-1?discount-distributed:Math.floor(discount*line.lineSubtotal/subtotal);
+          const part=i===lines.length-1?discount-distributed:Math.floor(discount*line.lineSubtotal/subtotal/100)*100;
           distributed+=part;
-          const lineTax=Math.round((line.lineSubtotal-part)*Number(line.product.tax_rate)/100);
+          const lineTax=Math.round((line.lineSubtotal-part)*Number(line.product.tax_rate)/10000)*100;
           tax+=lineTax;
           return {...line,discount:part,lineTax,lineTotal:line.lineSubtotal-part+lineTax};
         });
         const total=subtotal-discount+tax;
         if(!Number.isSafeInteger(total)||total<=0)throw Error('El total debe ser positivo.');
         const payments=body.payments.map(pay=>{
-          const method=String(pay.method||''),amount=cents(pay.amount);
+          const method=String(pay.method||''),amount=Math.round(cents(pay.amount)/100)*100;
           if(!paymentLabels.includes(method)||amount<1)throw Error('Método o importe de pago inválido.');
           return {method,amount};
         });
@@ -581,6 +694,24 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
         return {id,total_cents:total,balance_cents:total-paid};
       })();
       res.status(201).json(result);
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  // Abonos: siempre en una transacción; no alteran las líneas ni el inventario.
+  app.post('/api/companies/:companyId/sales/:saleId/payments',(req,res)=>{
+    try {
+      const companyId=saleCompany(req),saleId=Number(req.params.saleId);
+      const method=String(req.body?.method||'');
+      const amount=Math.round(cents(req.body?.amount)/100)*100;
+      if(!paymentLabels.includes(method)||amount<=0)throw Error('Selecciona un método y un importe positivo.');
+      const result=db.transaction(()=>{
+        const sale=db.prepare('SELECT * FROM sales WHERE id=? AND company_id=?').get(saleId,companyId);
+        if(!sale||sale.status!=='activa'||sale.sale_type!=='credito')throw Error('La venta a crédito no está activa.');
+        if(sale.balance_cents<=0||amount>sale.balance_cents)throw Error('El abono supera el saldo pendiente.');
+        db.prepare('INSERT INTO sale_payments(sale_id,method,amount_cents) VALUES (?,?,?)').run(saleId,method,amount);
+        db.prepare('UPDATE sales SET paid_cents=paid_cents+?,balance_cents=balance_cents-? WHERE id=?').run(amount,amount,saleId);
+        return {id:saleId,balance_cents:sale.balance_cents-amount};
+      })();
+      res.json(result);
     }catch(e){res.status(400).json({error:e.message})}
   });
   app.post('/api/companies/:companyId/sales/:saleId/annul',(req,res)=>{
@@ -624,7 +755,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const s = app.listen(port,'127.0.0.1',()=>resolve(s));
     s.on('error',reject);
   });
-  return {port:httpServer.address().port, close:()=>new Promise(resolve=>httpServer.close(()=>{db.close();resolve();}))};
+  return {port:httpServer.address().port, close:()=>new Promise(resolve=>{clearInterval(backupTimer);httpServer.close(()=>{db.close();resolve();})})};
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer().then(({port})=>console.log(`API local: http://127.0.0.1:${port}`)).catch(err=>{console.error(err);process.exitCode=1;});

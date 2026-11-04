@@ -1,135 +1,71 @@
-
 <div align="center">
   <h1>🇨🇷 FacturaCR</h1>
-  <p><strong>Sistema de punto de venta y gestión comercial para Costa Rica</strong></p>
+  <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
-
-  <img src="https://img.shields.io/badge/Versión-0.6.2-blue" alt="Versión" />
-  <img src="https://img.shields.io/badge/Estado-En%20desarrollo-orange" alt="Estado" />
-  <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
-
   <p>
-    <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React" />
-    <img src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white" alt="Vite" />
-    <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white" alt="Electron" />
-    <img src="https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs&logoColor=white" alt="Node.js" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.3-blue" alt="Versión 0.6.3" />
+    <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
+    <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
+  </p>
+  <p>
+    <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black" alt="React 19" />
+    <img src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white" alt="Vite 6" />
+    <img src="https://img.shields.io/badge/Electron-44-47848F?logo=electron&logoColor=white" alt="Electron 44" />
+    <img src="https://img.shields.io/badge/Node.js-Express-339933?logo=nodedotjs&logoColor=white" alt="Node.js y Express" />
     <img src="https://img.shields.io/badge/SQLite-Local-003B57?logo=sqlite&logoColor=white" alt="SQLite" />
   </p>
 </div>
 
-<hr>
+<hr />
 
 <h2>📋 Acerca del proyecto</h2>
-
-<p>
-  <strong>FacturaCR</strong> es una aplicación de escritorio diseñada
-  para facilitar la administración comercial de negocios en Costa Rica.
-  Permite gestionar empresas, clientes, artículos, inventarios, ventas,
-  cuentas por cobrar y respaldos desde una interfaz moderna.
-</p>
-
-<p>
-  Está desarrollada con React, Vite, Electron, Node.js, Express y SQLite.
-  Utiliza una base de datos local integrada, por lo que no requiere
-  instalar MySQL ni un servidor de base de datos independiente.
-</p>
-
-<p>
-  <strong>Estado:</strong> proyecto en desarrollo y pruebas.
-  Actualmente registra ventas comerciales internas, pero todavía
-  no emite comprobantes electrónicos autorizados por Hacienda.
-</p>
+<p><strong>FacturaCR</strong> es una aplicación de escritorio, desarrollada para gestionar operaciones de negocios costarricenses desde una interfaz local. Utiliza <strong>SQLite integrado</strong>, por lo que no requiere instalar MySQL ni un servidor de base de datos independiente.</p>
+<p>El proyecto se encuentra en desarrollo y pruebas. Su módulo de ventas genera registros comerciales internos; <strong>todavía no emite comprobantes electrónicos autorizados por Hacienda</strong>.</p>
 
 <h2>✨ Funcionalidades</h2>
-
-<h3>🏢 Gestión de empresas</h3>
 <ul>
-  <li>Administración de múltiples empresas.</li>
-  <li>Registro de información comercial y tributaria.</li>
-  <li>Selección y persistencia de la empresa activa.</li>
-  <li>Organización de datos por empresa.</li>
+  <li><strong>Empresas:</strong> gestión multiempresa, datos comerciales y tributarios; la empresa activa se selecciona desde su módulo.</li>
+  <li><strong>Clientes:</strong> identificaciones, contacto, dirección y datos para futuras operaciones tributarias.</li>
+  <li><strong>Artículos y servicios:</strong> fotografías, SKU, códigos de barras, CABYS, costos, precios, unidades y tarifas de IVA.</li>
+  <li><strong>Inventario:</strong> entradas, salidas y ajustes con historial, prevención de existencias negativas y alertas de mínimo.</li>
+  <li><strong>Punto de venta:</strong> carrito, ventas al contado y crédito, pagos en efectivo, tarjeta, SINPE Móvil y transferencia; combinación de medios de pago.</li>
+  <li><strong>Historial:</strong> consulta de ventas y anulación con reposición de existencias según las reglas del sistema.</li>
+  <li><strong>Cuentas por cobrar:</strong> abonos y seguimiento de saldos de ventas a crédito, incorporados para pruebas en v0.6.3.</li>
+  <li><strong>Precios e IVA:</strong> precio final ingresado en Artículos, cálculo del precio base y desglose tributario en Ventas, en pruebas en v0.6.3.</li>
+  <li><strong>Respaldos manuales:</strong> creación, descarga y restauración de bases SQLite con comprobaciones y protección previa a restaurar.</li>
+  <li><strong>CSV:</strong> herramientas de importación y exportación, incluida exportación de movimientos de inventario, con ajustes para Excel en Windows.</li>
+  <li><strong>Interfaz:</strong> diseño adaptable, búsquedas, ordenamiento y confirmaciones antes de acciones relevantes.</li>
 </ul>
 
-<h3>👥 Clientes</h3>
+<h2>🖨️ Impresión y redondeo (v0.6.3, en pruebas)</h2>
 <ul>
-  <li>Registro, edición y consulta de clientes.</li>
-  <li>Identificaciones y datos de contacto.</li>
-  <li>Direcciones e información comercial.</li>
-  <li>Asociación de clientes con operaciones de venta.</li>
+<li>Selección de impresora Windows por empresa, impresión de prueba, hasta 5 copias y modo silencioso opcional.</li>
+<li>Diseños clásico, compacto y moderno; papel 58/80 mm, logotipo, mensaje, redes sociales y campos configurables.</li>
+<li>Configuración guardada localmente por empresa; no se incluye en el respaldo de SQLite.</li>
+<li>Empresa predeterminada seleccionable en Empresas, priorizada al reiniciar.</li>
+<li>Las nuevas ventas y abonos redondean los montos al colón más cercano. Las ventas históricas conservan sus importes originales.</li>
+<li>El enlace del negocio se muestra como texto. QR gráfico y funciones ESC/POS quedan pendientes.</li>
+<li>Se requiere probar la impresión física en Windows con controladores de 58 y 80 mm.</li>
 </ul>
 
-<h3>📦 Artículos e inventario</h3>
-<ul>
-  <li>Administración de artículos y servicios.</li>
-  <li>Fotografías de productos.</li>
-  <li>Códigos SKU, códigos de barras y CABYS.</li>
-  <li>Costos, precios y tarifas de IVA.</li>
-  <li>Control de existencias y stock mínimo.</li>
-  <li>Entradas, salidas y ajustes de inventario.</li>
-  <li>Historial de movimientos.</li>
-  <li>Herramientas de importación y exportación CSV.</li>
-</ul>
-
-<h3>🛒 Punto de venta</h3>
-<ul>
-  <li>Carrito de compras.</li>
-  <li>Ventas al contado y a crédito.</li>
-  <li>Pagos en efectivo, tarjeta, SINPE Móvil y transferencia.</li>
-  <li>Combinación de métodos de pago.</li>
-  <li>Desglose de subtotal, descuentos, IVA y total.</li>
-  <li>Historial y consulta de ventas.</li>
-  <li>Anulación de ventas con reposición de inventario.</li>
-  <li>Cálculo del vuelto según el efectivo recibido.</li>
-</ul>
-
-<h3>💰 Precios y cuentas por cobrar</h3>
-<p>Mejoras incorporadas para pruebas en la versión 0.6.2:</p>
-<ul>
-  <li>Ingreso del precio final con IVA incluido en Artículos.</li>
-  <li>Cálculo automático del precio base sin IVA.</li>
-  <li>Visualización del precio base en Ventas.</li>
-  <li>Aplicación del impuesto por separado para evitar duplicaciones.</li>
-  <li>Carrito y resumen de importes más destacados.</li>
-  <li>Registro de abonos a ventas a crédito.</li>
-  <li>Consulta de saldos pendientes.</li>
-</ul>
-
-<h3>💾 Respaldos</h3>
-<ul>
-  <li>Creación de respaldos manuales de SQLite.</li>
-  <li>Descarga y restauración de respaldos.</li>
-  <li>Comprobaciones de integridad.</li>
-  <li>Protección de datos antes de restauraciones.</li>
-</ul>
-
-<h2>🧰 Tecnologías utilizadas</h2>
-
+<h2>🧰 Tecnologías</h2>
 <table>
-  <thead>
-    <tr>
-      <th>Componente</th>
-      <th>Tecnología</th>
-    </tr>
-  </thead>
+  <thead><tr><th>Capa</th><th>Tecnología</th></tr></thead>
   <tbody>
-    <tr><td>Frontend</td><td>React 19</td></tr>
-    <tr><td>Herramienta de desarrollo</td><td>Vite 6</td></tr>
-    <tr><td>Aplicación de escritorio</td><td>Electron 44</td></tr>
-    <tr><td>Backend</td><td>Node.js y Express 4</td></tr>
-    <tr><td>Base de datos</td><td>SQLite y better-sqlite3</td></tr>
-    <tr><td>Estilos</td><td>CSS</td></tr>
-    <tr><td>Instalador Windows</td><td>electron-builder y NSIS</td></tr>
-    <tr><td>Control de versiones</td><td>Git y GitHub</td></tr>
+    <tr><td>Interfaz</td><td>React 19, Vite 6, CSS</td></tr>
+    <tr><td>Escritorio</td><td>Electron 44</td></tr>
+    <tr><td>API local</td><td>Node.js, Express 4</td></tr>
+    <tr><td>Base de datos</td><td>SQLite, better-sqlite3</td></tr>
+    <tr><td>Instalador</td><td>electron-builder, NSIS (Windows)</td></tr>
   </tbody>
 </table>
 
-<h2>📁 Estructura del proyecto</h2>
-
+<h2>📁 Estructura</h2>
 <pre><code>FacturaCR/
-├── build/             # Iconos y recursos del instalador
-├── electron/          # Aplicación de escritorio
-├── server/            # API Express y base de datos
-├── src/               # Interfaz React y estilos
+├── build/             # Iconos y recursos de instalación
+├── electron/          # Proceso principal de Electron
+├── server/            # API Express y persistencia SQLite
+├── src/               # React y estilos
 ├── index.html
 ├── package.json
 ├── package-lock.json
@@ -138,183 +74,107 @@
 └── README.md</code></pre>
 
 <h2>🚀 Instalación y ejecución</h2>
-
-<h3>Requisitos</h3>
-<ul>
-  <li>Windows 10 u 11 de 64 bits.</li>
-  <li>Node.js 22 LTS.</li>
-  <li>npm.</li>
-  <li>Git.</li>
-  <li>Herramientas de compilación C++ de Visual Studio si los módulos nativos las requieren.</li>
-</ul>
-
-<h3>1. Clonar el repositorio</h3>
-
+<p><strong>Requisitos:</strong> Windows 10/11 x64, Node.js 22 LTS y npm. Si los módulos nativos lo requieren, instalar las herramientas de compilación C++ de Visual Studio.</p>
+<p>Clona el repositorio privado y entra en su carpeta:</p>
 <pre><code>git clone URL_DEL_REPOSITORIO
 cd FacturaCR</code></pre>
-
-<p>Reemplazar <code>URL_DEL_REPOSITORIO</code> por la dirección real del repositorio.</p>
-
-<h3>2. Instalar dependencias</h3>
-
-<pre><code>npm install</code></pre>
-
-<h3>3. Ejecutar en desarrollo</h3>
-
-<pre><code>npm run desktop:dev</code></pre>
-
-<h3>4. Generar el instalador de Windows</h3>
-
-<pre><code>npm run dist:win</code></pre>
-
-<p>El instalador generado se almacena en la carpeta <code>release/</code>.</p>
-
-<h3>Otros comandos</h3>
-
+<p>Sustituye <code>URL_DEL_REPOSITORIO</code> por la dirección real del repositorio.</p>
+<p>Instala las dependencias y ejecuta la versión de escritorio en desarrollo:</p>
+<pre><code>npm install
+npm run desktop:dev</code></pre>
+<p>Otros comandos disponibles:</p>
 <table>
-  <thead>
-    <tr><th>Comando</th><th>Descripción</th></tr>
-  </thead>
+  <thead><tr><th>Comando</th><th>Función</th></tr></thead>
   <tbody>
-    <tr><td><code>npm run dev</code></td><td>Inicia el entorno de desarrollo.</td></tr>
-    <tr><td><code>npm run build</code></td><td>Compila la interfaz.</td></tr>
-    <tr><td><code>npm run desktop</code></td><td>Compila y abre Electron.</td></tr>
-    <tr><td><code>npm run desktop:dev</code></td><td>Abre la aplicación en desarrollo.</td></tr>
-    <tr><td><code>npm run dist:win</code></td><td>Genera el instalador de Windows.</td></tr>
+    <tr><td><code>npm run dev</code></td><td>Inicia API y Vite</td></tr>
+    <tr><td><code>npm run build</code></td><td>Compila la interfaz en <code>dist/</code></td></tr>
+    <tr><td><code>npm run desktop</code></td><td>Compila y abre Electron</td></tr>
+    <tr><td><code>npm run dist:win</code></td><td>Genera instalador Windows NSIS en <code>release/</code></td></tr>
   </tbody>
 </table>
+<p>El instalador no se almacena en Git: se construye localmente. Para distribución pública se recomienda firmar digitalmente el ejecutable.</p>
 
-<h2>🗄️ Base de datos y seguridad</h2>
-
-<p>
-  FacturaCR utiliza SQLite como almacenamiento local.
-  En desarrollo, la base de datos normalmente se encuentra
-  en <code>data/</code>. En la aplicación instalada se utiliza
-  el directorio de datos de usuario de Electron.
-</p>
-
+<h2>💾 Datos y respaldos</h2>
 <ul>
-  <li>Las bases de datos reales no deben subirse a GitHub.</li>
-  <li>Los respaldos deben conservarse en ubicaciones seguras.</li>
-  <li>No publicar certificados, contraseñas ni claves privadas.</li>
-  <li>Los datos de desarrollo y de la instalación no se sincronizan automáticamente.</li>
-  <li>El acceso multiusuario con permisos todavía está planificado.</li>
-  <li>Antes de actualizar el programa, se recomienda crear un respaldo.</li>
+  <li>En desarrollo, SQLite se guarda normalmente en <code>data/</code>; en la versión instalada, en el directorio <code>userData</code> de Electron (habitualmente bajo <code>%APPDATA%</code>).</li>
+  <li>Los datos de desarrollo y los de la instalación <strong>no se sincronizan automáticamente</strong>.</li>
+  <li>Los respaldos y restauraciones manuales afectan la base completa, incluidas todas las empresas.</li>
+  <li>Antes de actualizar o restaurar, crear una copia externa y comprobar que puede recuperarse.</li>
+  <li>Los respaldos actuales no están cifrados: tratarlos como información confidencial.</li>
+  <li>Los respaldos automáticos se planifican para la versión 0.6.4; aún no están implementados.</li>
 </ul>
 
-<h2>🕘 Historial de versiones</h2>
-
+<h2>🕘 Evolución del proyecto</h2>
 <table>
-  <thead>
-    <tr><th>Versión</th><th>Principales cambios</th></tr>
-  </thead>
+  <thead><tr><th>Versión</th><th>Principales avances</th></tr></thead>
   <tbody>
-    <tr><td>0.4.x</td><td>Información tributaria, artículos y migraciones de base de datos.</td></tr>
-    <tr><td>0.5.0</td><td>Movimientos y control de inventario.</td></tr>
-    <tr><td>0.5.1 - 0.5.3</td><td>Mejoras en formularios, empresas y confirmaciones.</td></tr>
-    <tr><td>0.5.5 - 0.5.15</td><td>Respaldos manuales, exportaciones y correcciones.</td></tr>
-    <tr><td>0.6.0</td><td>Implementación inicial del punto de venta.</td></tr>
-    <tr><td>0.6.1</td><td>Corrección del vuelto y mejoras de fotografías y clientes.</td></tr>
-    <tr><td>0.6.2</td><td>Precios con IVA incluido, carrito mejorado y abonos a crédito (en pruebas).</td></tr>
+    <tr><td>0.4.x</td><td>Datos tributarios de clientes, artículos y servicios, fotos y migraciones de base de datos.</td></tr>
+    <tr><td>0.5.0</td><td>Movimientos de inventario, trazabilidad y alertas de existencias.</td></tr>
+    <tr><td>0.5.1–0.5.3</td><td>Mejoras de formularios, ordenamientos, empresa activa y confirmaciones.</td></tr>
+    <tr><td>0.5.5–0.5.15</td><td>Respaldos manuales, interfaz responsive, exportaciones CSV y correcciones.</td></tr>
+    <tr><td>0.6.0–0.6.1</td><td>Punto de venta, medios de pago, historial, correcciones del vuelto y fotos.</td></tr>
+    <tr><td>0.6.3</td><td>Precio con IVA incluido, carrito destacado y abonos a crédito (en pruebas).</td></tr>
   </tbody>
 </table>
+<p>Las notas históricas detalladas se conservan en los archivos <code>NOTAS_VERSION_*.txt</code> del proyecto, cuando estén disponibles.</p>
 
 <h2>🗺️ Hoja de ruta</h2>
-
 <table>
-  <thead>
-    <tr><th>Versión</th><th>Funcionalidades previstas</th><th>Estado</th></tr>
-  </thead>
+  <thead><tr><th>Versión</th><th>Objetivo</th><th>Estado</th></tr></thead>
   <tbody>
-    <tr>
-      <td>0.6.3</td>
-      <td>Impresión térmica de 58 y 80 mm, compatibilidad con impresoras Windows y personalización de tiquetes.</td>
-      <td>Planificada</td>
-    </tr>
-    <tr>
-      <td>0.6.4</td>
-      <td>Respaldos automáticos, programación, retención, alertas y verificación de integridad.</td>
-      <td>Planificada</td>
-    </tr>
-    <tr>
-      <td>0.7.0</td>
-      <td>Reportes, estadísticas y análisis comercial.</td>
-      <td>Planificada</td>
-    </tr>
-    <tr>
-      <td>0.8.0</td>
-      <td>Documentos electrónicos XML y representación PDF.</td>
-      <td>Planificada</td>
-    </tr>
-    <tr>
-      <td>0.9.0</td>
-      <td>Firma digital, envío y consulta de respuestas de Hacienda.</td>
-      <td>Planificada</td>
-    </tr>
-    <tr>
-      <td>1.0.0</td>
-      <td>Usuarios, autenticación y permisos.</td>
-      <td>Planificada</td>
-    </tr>
-    <tr>
-      <td>1.1.0</td>
-      <td>Sistema de licenciamiento comercial.</td>
-      <td>Planificada</td>
-    </tr>
+    <tr><td>0.6.3</td><td>Tiquetes térmicos de 58/80 mm con impresoras Windows y diseños personalizables por empresa</td><td>Planificada</td></tr>
+    <tr><td>0.6.4</td><td>Respaldos automáticos, programación, retención y validación de integridad</td><td>Planificada</td></tr>
+    <tr><td>0.7.0</td><td>Reportes y estadísticas</td><td>Planificada</td></tr>
+    <tr><td>0.8.0</td><td>Documentos electrónicos XML y representación PDF conforme a requisitos aplicables</td><td>Planificada</td></tr>
+    <tr><td>0.9.0</td><td>Firma digital, envío y consulta de respuestas de Hacienda</td><td>Planificada</td></tr>
+    <tr><td>1.0.0</td><td>Usuarios, autenticación y permisos</td><td>Planificada</td></tr>
+    <tr><td>1.1.0</td><td>Licenciamiento comercial</td><td>Planificada</td></tr>
   </tbody>
 </table>
 
-<h2>🧾 Facturación electrónica de Costa Rica</h2>
-
-<p>
-  La integración con el Ministerio de Hacienda de Costa Rica
-  forma parte de la evolución prevista de FacturaCR.
-</p>
-
-<p>Las etapas futuras contemplan:</p>
-
+<h2>🔐 Seguridad y limitaciones</h2>
 <ul>
-  <li>Generación de documentos electrónicos XML.</li>
-  <li>Validación de datos tributarios y códigos CABYS.</li>
-  <li>Firma digital de documentos.</li>
-  <li>Envío de comprobantes a Hacienda.</li>
-  <li>Consulta de aceptación o rechazo.</li>
-  <li>Representación gráfica en PDF.</li>
+  <li>La API local escucha en <code>127.0.0.1</code>, pero todavía no cuenta con autenticación completa.</li>
+  <li>La separación multiempresa organiza registros; no representa aislamiento de permisos entre usuarios.</li>
+  <li>No publicar bases SQLite, respaldos, datos de clientes, certificados, claves privadas ni archivos <code>.env</code>.</li>
+  <li><code>.gitignore</code> evita nuevas inclusiones accidentales, pero no elimina archivos ya rastreados por Git.</li>
+  <li>El sistema no debe considerarse listo para operaciones tributarias reales ni para producción sin pruebas, controles de seguridad y validación regulatoria.</li>
 </ul>
 
-<p>
-  <strong>Importante:</strong> las ventas y los futuros tiquetes
-  térmicos de FacturaCR son comprobantes comerciales internos
-  mientras no se implemente y valide la integración tributaria.
-  No sustituyen facturas electrónicas autorizadas por Hacienda.
-</p>
-
-<h2>🔐 Privacidad del repositorio</h2>
-
-<p>
-  El archivo <code>.gitignore</code> excluye dependencias,
-  compilaciones, instaladores, bases de datos, respaldos,
-  archivos temporales y configuraciones sensibles.
-</p>
-
-<p>
-  El repositorio debe conservar únicamente el código fuente
-  y los recursos necesarios para desarrollar y compilar
-  la aplicación.
-</p>
+<h2>⚠️ Facturación electrónica</h2>
+<p>Las ventas registradas actualmente y los futuros tiquetes térmicos son <strong>comprobantes internos</strong>; no sustituyen una factura electrónica validada por el Ministerio de Hacienda de Costa Rica. La generación XML, firma y envío se desarrollarán en etapas posteriores y deberán comprobarse contra las especificaciones oficiales vigentes.</p>
 
 <h2>📄 Licencia</h2>
+<p>Proyecto privado en desarrollo. No se concede autorización para copiar, redistribuir o comercializar el código por el mero hecho de acceder al repositorio. La licencia definitiva se establecerá antes de su distribución comercial.</p>
 
-<p>
-  Proyecto privado en desarrollo.
-  Todos los derechos reservados hasta que se establezca
-  una licencia de distribución o comercialización.
-</p>
+<hr />
+<div align="center"><p><strong>FacturaCR</strong> · Desarrollado para negocios de Costa Rica 🇨🇷</p></div>
 
-<hr>
 
-<div align="center">
-  <p><strong>FacturaCR 🇨🇷</strong></p>
-  <p>Desarrollado para facilitar la gestión comercial de negocios en Costa Rica.</p>
-  <p><em>En constante desarrollo y mejora.</em></p>
-</div>
+## Impresión térmica v0.6.3
+
+Desde Ventas > Impresión de tiquetes puedes personalizar logotipo, mensaje, redes sociales, campos visibles y tamaño 58/80 mm por empresa. Desde el historial puedes previsualizar, imprimir y reimprimir tiquetes usando el diálogo de impresión de Windows. El papel y controlador deben estar configurados en Windows. No son comprobantes electrónicos autorizados por Hacienda.
+
+
+<h2>💳 Histórico de ventas a crédito y abonos (v0.6.3, en pruebas)</h2>
+<p>La sección Ventas incluye un histórico específico de ventas a crédito, con filtros por cliente, número, fecha y estado (pendiente, pagada o anulada), resumen de cuentas, consulta individual de cada abono (fecha, método e importe) y exportación CSV. Los registros se filtran por empresa activa y se almacenan en SQLite. Los pagos iniciales también se incluyen en el historial de pagos.</p>
+
+
+### Ajustes de tiquetes (v0.6.3)
+Los datos comerciales del tiquete (razón social, nombre comercial, identificación, dirección, teléfono, correo, sitio web y redes sociales) se administran en **Empresas → Editar datos**. Se eliminó la opción de QR. Las preferencias de impresión permanecen guardadas por empresa en el equipo.
+
+
+### Guardar personalización de tiquetes
+En **Ventas → Personalizar tiquete**, presiona **Guardar ajustes de impresión**. La configuración se guarda por empresa en el almacenamiento local de Electron; no se incluye aún en los respaldos SQLite.
+
+
+### Logotipo del tiquete
+En **Ventas → Personalizar tiquete**, puedes cargar un logotipo PNG, JPEG o WebP de hasta **800 × 800 píxeles** y **250 KB**. Se muestra una miniatura y puedes quitarlo antes de guardar. Los ajustes se conservan localmente por empresa mediante **Guardar ajustes de impresión**.
+
+### v0.6.4 · Empresa recordada y respaldos automáticos
+- La empresa activa se recuerda al cerrar y reabrir FacturaCR. Se eliminó la opción de empresa predeterminada.
+- **Respaldos → Respaldos automáticos:** activación, frecuencia diaria/semanal/mensual, hora local, retención de 1 a 365 copias, creación manual y listado de copias.
+- Se crean instantáneas consistentes con `better-sqlite3.backup()`, verificadas mediante `PRAGMA integrity_check`.
+- La programación se guarda en `data/automatic-backup-settings.json` y los archivos en `data/automatic-backups/`. El directorio `data/` está excluido del repositorio Git.
+- El programador funciona con FacturaCR abierto; al iniciar comprueba si hay una copia pendiente. No se instala una tarea independiente de Windows.
+- **Limitación:** los ajustes de impresión guardados en localStorage aún no se incluyen en las copias SQLite automáticas. Copia también los datos de usuario de Electron antes de reinstalar Windows o cambiar de equipo.

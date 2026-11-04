@@ -157,3 +157,30 @@ button{max-width:100%;overflow-wrap:break-word;word-break:normal}
 .posChange{font-size:19px;font-weight:700;color:#086c50}
 .posPaidSummary{padding:10px 0}
 @media(max-width:600px){.posCashBox{padding:14px}.posCashResults{flex-direction:column}}
+
+/* POS v0.6.2: carrito y resumen de cobro destacados */
+.posCartCard{border:2px solid #b5d9d3;box-shadow:0 8px 28px rgba(16,85,78,.09)}
+.posCartTitle{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;color:#125c53;font-size:1.35rem}
+.posCartTitle span{font-size:.8rem;border-radius:99px;background:#e4f4f0;color:#14685d;padding:6px 12px}
+.posTotals{display:grid;gap:0;border:1px solid #d5e5e4;border-radius:14px;background:#f5faf9;padding:8px 18px;margin:18px 0;position:relative}
+.posTotals>div{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 2px;border-bottom:1px solid #dfe9e8;flex-wrap:wrap}
+.posTotals>div strong{font-variant-numeric:tabular-nums;font-size:1.08rem}
+.posTotals .posDiscount{color:#0a7860}
+.posTotals>div.posGrandTotal{border:0;background:#dff2ed;border-radius:10px;padding:17px 14px;margin:8px -6px 0;color:#0c574d;font-weight:800}
+.posGrandTotal strong{font-size:clamp(1.3rem,3vw,1.9rem)!important}
+.posPricePreview{border:1px solid #a9d4c8;background:#eff9f5;padding:15px;border-radius:12px;display:flex;flex-direction:column;gap:5px;margin:12px 0}
+.posPricePreview strong{font-size:1.35rem;color:#0c6656}.posPricePreview small{color:#516b66}
+.posAbono{padding:16px;margin:16px 0;background:#f1f8f6;border:1px solid #beddd5;border-radius:12px}
+@media(max-width:520px){.posTotals{padding:8px}.posTotals>div{align-items:flex-start}.posGrandTotal strong{overflow-wrap:anywhere}}
+
+/* Impresión térmica v0.6.3 */
+.ticketSettings{margin-top:16px;padding:16px;border:1px solid #d7e2ed;border-radius:12px;background:#f7fafc}.ticketChecks{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px}.ticketChecks label{display:flex;align-items:center;gap:8px}.ticketChecks input{width:auto}.ticketOverlay{position:fixed;inset:0;background:#0009;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px}.ticketModal{background:#fff;color:#142d40;border-radius:16px;padding:18px;width:min(550px,100%);max-height:94vh;display:flex;flex-direction:column;gap:10px}.ticketModal iframe{background:white;border:1px solid #d9e2ea;flex:1;min-height:350px;width:100%}.ticketModal .actions{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Histórico de créditos y abonos */
+.creditHeading{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}.creditSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.creditSummary>div{background:#eef8f5;border:1px solid #c5e2d9;border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}.creditSummary small{color:#526b64}.creditSummary strong{color:#105d50;font-size:clamp(1rem,2vw,1.4rem);overflow-wrap:anywhere}.creditFilters{display:grid;grid-template-columns:2fr 1fr;gap:12px}.creditDetail{margin-top:16px;padding:16px;border:1px solid #b9dcd4;background:#f5fbf9;border-radius:12px}@media(max-width:650px){.creditSummary{grid-template-columns:1fr}.creditFilters{grid-template-columns:1fr}}
+
+.ticketSaveActions{margin-top:18px;padding-top:14px;border-top:1px solid #d7e2ed}.ticketSaveActions button:first-child{font-weight:700}.ticketSavedMessage{color:#176534;font-weight:700;margin:8px 0}
+
+.ticketLogoPreview{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin:12px 0;padding:14px;border:1px solid #cbd5e1;border-radius:12px}.ticketLogoPreview img{display:block;max-width:180px;max-height:120px;object-fit:contain;background:white;border:1px solid #e2e8f0;border-radius:8px;padding:8px}
+
+.autoBackupPanel{margin-top:20px;padding:16px;border:1px solid #cbd5e1;border-radius:12px}.autoBackupPanel h3{margin-top:0}.backupToggle{display:flex;gap:8px;align-items:center;margin:12px 0}.autoBackupPanel ul{max-height:200px;overflow:auto;overflow-wrap:anywhere}

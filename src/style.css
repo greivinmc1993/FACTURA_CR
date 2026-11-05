@@ -587,3 +587,23 @@ button.posClientChangeButton{font-size:12px;flex-shrink:0;padding:9px 12px}
 .dialogSymbolError{background:#fde8e8!important;color:#a12c36!important}
 @keyframes backupRestoreSpin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.backupRestoreSpinner{animation:none}}
+
+/* v0.6.40 — búsqueda completa en el historial de respaldos */
+.backupHistorySearch{display:flex;flex-direction:column;gap:7px;margin:12px 0;padding:12px;border:1px solid #dbeae7;background:#f7fbfa;border-radius:12px}
+.backupHistorySearch label{font-weight:700;color:#244e49;font-size:.91rem}
+.backupHistorySearch input{width:100%;min-width:0;box-sizing:border-box}
+.backupHistorySearch small{color:#5d726c}
+.backupHistoryMore{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:12px;color:#62776f;font-size:.88rem}
+.backupHistoryMore button{white-space:nowrap}
+
+
+/* v0.6.41 · dashboard comercial. Estilos aislados para no alterar el POS. */
+.bizDashboard{display:grid;gap:16px;min-width:0}.bizDashboard .card{min-width:0}
+.bizDashHero{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1px solid #cfe6dd;background:linear-gradient(115deg,#f0faf6,#f6faff)}
+.bizDashHero h3{margin:4px 0 6px;font-size:clamp(1.15rem,2vw,1.65rem);color:#17364b}.bizDashEyebrow{letter-spacing:.12em;font-weight:800;font-size:11px;color:#087e6b;margin:0}.bizDashHero .hint{margin:0}
+.bizDashFilters{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.bizDashPresets{display:flex;gap:6px;flex-wrap:wrap}.bizDashFilters label{display:grid;gap:5px;font-size:.78rem;font-weight:750;color:#315b65}.bizDashFilters input{min-width:145px;height:39px}
+.bizDashMetrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.bizDashMetric{border:1px solid #d5e7e3;border-radius:16px;background:linear-gradient(155deg,#fff,#f0f8f5);padding:18px;display:grid;gap:9px;box-shadow:0 4px 15px rgba(17,50,72,.045)}.bizDashMetric span{font-weight:700;font-size:.86rem;color:#52706d}.bizDashMetric strong{font-size:clamp(1.25rem,2vw,1.85rem);font-variant-numeric:tabular-nums;color:#0b5e55;overflow-wrap:anywhere}.bizDashMetric small{font-size:.76rem;color:#617b78;line-height:1.4}
+.bizDashGrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px;align-items:stretch}.bizDashGrid>.card{min-width:0}.bizDashSectionHead h4{font-size:1.12rem;margin:0 0 6px;color:#1a3e51}.bizDashSectionHead .hint{margin:0 0 15px}.bizDashBars{height:230px;border-bottom:1px solid #d7e7e3;display:flex;align-items:end;gap:3px;padding:6px 0 0;overflow-x:auto;max-width:100%}.bizDashBarItem{min-width:22px;flex:1;max-width:62px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px}.bizDashBar{background:linear-gradient(180deg,#22a58d,#147669);border-radius:6px 6px 0 0;width:min(78%,35px);min-height:3px}.bizDashBarItem small{font-size:.62rem;color:#5b717e;white-space:nowrap}.bizDashChartFooter{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;margin-top:16px;font-size:.85rem;color:#3d5b63}.bizDashChartFooter strong{color:#0b6c5d}
+.bizDashTopList{display:grid;gap:0}.bizDashTopLine{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #e6efec}.bizDashTopLine:last-child{border:0}.bizDashRank{width:27px;height:27px;flex:0 0 27px;display:grid;place-items:center;border-radius:10px;background:#e5f6f0;color:#0f806d;font-weight:800}.bizDashTopName{flex:1;min-width:0;display:grid;gap:3px}.bizDashTopName strong{font-size:.87rem;color:#243c4d;overflow-wrap:anywhere}.bizDashTopName small{color:#667d81}.bizDashTopLine>b{color:#0d6257;font-size:.9rem;font-variant-numeric:tabular-nums}
+.bizDashMethods{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px}.bizDashMethod{padding:14px;background:#f3faf8;border:1px solid #d9ebe5;border-radius:12px;display:grid;gap:6px}.bizDashMethod strong{color:#1c4750}.bizDashMethod small{color:#667d80}.bizDashMethod b{font-size:1.1rem;color:#07665b}.bizDashEmpty{border:1px dashed #ccdeda;background:#f8fbfa;padding:26px;border-radius:12px;color:#617a79;text-align:center}.bizDashFootnote{font-size:.78rem;color:#69818b;line-height:1.65}.bizDashError{border:1px solid #eebdbd!important;background:#fff7f7!important;color:#a22835}
+@media(max-width:1050px){.bizDashMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bizDashGrid{grid-template-columns:1fr}}@media(max-width:560px){.bizDashMetrics{grid-template-columns:1fr}.bizDashFilters>label,.bizDashFilters>label input{width:100%}.bizDashPresets{width:100%}.bizDashPresets button{flex:1}.bizDashHero>button{width:100%}}

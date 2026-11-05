@@ -38,7 +38,7 @@ node_modules/
 *.sql.gz
 *.zip
 
-# Fixture de QA: imprescindible para validar actualización 0.6.34 -> 0.6.35.
+# Fixture de QA: imprescindible para validar actualización 0.6.34 -> versiones actuales.
 # Mantener los demás ZIP fuera del repositorio.
 !tests/fixtures/FacturaCR_v0.6.34_baseline.zip
 

@@ -1,3 +1,10 @@
+## FacturaCR v0.6.41 — Dashboard comercial
+
+- El historial de copias automáticas ahora permite **buscar por nombre o fecha**, incluso entre archivos más antiguos que los 20 mostrados inicialmente.
+- Se puede alternar entre **Mostrar todas** y **Mostrar solo 20**. La búsqueda no mueve, borra ni restaura copias de seguridad.
+- El historial de versiones se encuentra en un único archivo: [`CHANGELOG.md`](CHANGELOG.md). Se dejaron de generar archivos `NOTAS_VERSION_*.txt` o `NOTAS_VERSION_*.md`.
+- Para validar: `npm test`, `npm run build`, `npm run dist:win`.
+
 ## FacturaCR v0.6.38 — Confirmación clara al restaurar respaldos
 
 - Primer diálogo: **Continuar**, no Eliminar.
@@ -8,7 +15,7 @@
 
 ## FacturaCR v0.6.38 — Inspección segura antes de restaurar
 
-Al seleccionar un archivo `.sqlite` en Respaldos, la aplicación verifica su integridad y muestra una comparación de registros del respaldo frente a la base activa. Se conserva la doble confirmación y la copia previa. La inspección no modifica las empresas actuales. Consulta `NOTAS_VERSION_0.6.38.md`.
+Al seleccionar un archivo `.sqlite` en Respaldos, la aplicación verifica su integridad y muestra una comparación de registros del respaldo frente a la base activa. Se conserva la doble confirmación y la copia previa. La inspección no modifica las empresas actuales. Consulta `CHANGELOG.md`.
 
 ## FacturaCR v0.6.27 — Precio final con IVA incluido
 
@@ -40,7 +47,7 @@ La información continúa almacenada en la base SQLite habitual; no reemplaces n
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.38-blue" alt="Versión 0.6.9.2" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.41-blue" alt="Versión 0.6.41" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>
@@ -153,7 +160,7 @@ npm run desktop:dev</code></pre>
     <tr><td>0.6.3</td><td>Precio con IVA incluido, carrito destacado y abonos a crédito (en pruebas).</td></tr>
   </tbody>
 </table>
-<p>Las notas históricas detalladas se conservan en los archivos <code>NOTAS_VERSION_*.txt</code> del proyecto, cuando estén disponibles.</p>
+<p>Las notas históricas se conservan en un único archivo <code>CHANGELOG.md</code>.</p>
 
 <h2>🗺️ Hoja de ruta</h2>
 <table>
@@ -429,4 +436,11 @@ Este ensayo no se ejecuta contra los datos de un cliente y no equivale a una cer
 
 ## Cambios de la versión 0.6.39
 
-La restauración SQLite ahora incluye un indicador de operación activa, evita envíos repetidos, muestra errores en un diálogo claro y distingue el éxito de la restauración de cualquier fallo posterior al refrescar las empresas. Consulta `NOTAS_VERSION_0.6.39.md`.
+La restauración SQLite ahora incluye un indicador de operación activa, evita envíos repetidos, muestra errores en un diálogo claro y distingue el éxito de la restauración de cualquier fallo posterior al refrescar las empresas. Consulta `CHANGELOG.md`.
+
+
+### Dashboard comercial (v0.6.41)
+
+Nueva sección **Dashboard** con fechas de registro en UTC, ventas activas, importes, ticket promedio, crédito pendiente, evolución diaria, top de artículos y cobros por método. Los resultados se agregan en SQLite sin el límite de las últimas 500 ventas. Permite exportar el detalle diario a CSV. No calcula utilidad neta ni sustituye reportes fiscales.
+
+Pruebas de dashboard: `npm test` y `npm run qa:real-server` (con dependencias nativas instaladas). Consulta `INFORME_QA_v0.6.41.md`.

@@ -114,6 +114,43 @@ async function main(){
   finally{db.close()}
   assert.ok(fs.statSync(path.join(dir,'facturacr.sqlite')).size>=before);
  });
+ await test('Dashboard nuevo responde con ceros para empresa sin ventas',async()=>{
+  const r=await request('GET','/api/companies/1/dashboard?from=2026-01-01&to=2026-12-31');
+  assert.equal(r.status,200,JSON.stringify(r.body));assert.equal(r.body.summary.revenue_cents,0);
+  assert.equal(r.body.summary.sale_count,0);assert.equal(r.body.top_products.length,0);
+ });
+ await test('Dashboard rechaza fechas imposibles y acceso a empresa ajena',async()=>{
+  let r=await request('GET','/api/companies/1/dashboard?from=2026-02-30&to=2026-03-01');assert.equal(r.status,400);
+  r=await request('GET','/api/companies/99/dashboard?from=2026-01-01&to=2026-01-31');assert.equal(r.status,400);
+ });
+ await test('Dashboard agrega ventas, anulaciones, créditos y líneas sin límite del historial',async()=>{
+  const Database=require('better-sqlite3');
+  const db=new Database(path.join(dir,'facturacr.sqlite'));
+  try{
+   const product=db.prepare("INSERT INTO products(company_id,kind,description,price,currency,tax_rate) VALUES(1,'producto','Servicio QA',1000,'CRC',13)").run().lastInsertRowid;
+   const add=db.prepare('INSERT INTO sales(company_id,sale_type,status,subtotal_cents,discount_cents,tax_cents,total_cents,paid_cents,balance_cents,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)');
+   const id=add.run(1,'contado','activa',100000,0,13000,113000,113000,0,'2026-03-15 12:30:00').lastInsertRowid;
+   db.prepare('INSERT INTO sale_lines(sale_id,product_id,description,quantity,unit_price_cents,tax_rate,discount_cents,subtotal_cents,tax_cents,total_cents) VALUES(?,?,?,?,?,?,?,?,?,?)').run(id,product,'Servicio QA',1,100000,13,0,100000,13000,113000);
+   db.prepare('INSERT INTO sale_payments(sale_id,method,amount_cents,created_at) VALUES(?,?,?,?)').run(id,'Efectivo',113000,'2026-03-15 12:30:00');
+   add.run(1,'credito','activa',200000,0,26000,226000,100000,126000,'2026-03-16 08:00:00');
+   add.run(1,'contado','anulada',900000,0,117000,1017000,0,0,'2026-03-16 08:00:00');
+  }finally{db.close()}
+  const r=await request('GET','/api/companies/1/dashboard?from=2026-03-01&to=2026-03-31');
+  assert.equal(r.status,200,JSON.stringify(r.body));
+  assert.equal(r.body.summary.sale_count,2);assert.equal(r.body.summary.annulled_count,1);
+  assert.equal(r.body.summary.revenue_cents,339000);assert.equal(r.body.outstanding.balance_cents,126000);
+  assert.equal(r.body.daily.length,2);assert.equal(r.body.top_products[0].units,1);
+  assert.equal(r.body.payment_methods[0].amount_cents,113000);
+ });
+ await test('Dashboard filtra por fecha y no mezcla empresas',async()=>{
+  const r=await request('GET','/api/companies/1/dashboard?from=2026-03-15&to=2026-03-15');
+  assert.equal(r.status,200);assert.equal(r.body.summary.sale_count,1);
+  assert.equal(r.body.summary.revenue_cents,113000);
+  const other=await request('POST','/api/companies',{legal_name:'Empresa QA 2',identification:'987654321'});
+  assert.equal(other.status,201);
+  const separate=await request('GET',`/api/companies/${other.body.id}/dashboard?from=2026-03-01&to=2026-03-31`);
+  assert.equal(separate.status,200);assert.equal(separate.body.summary.revenue_cents,0);
+ });
  await test('Se rechaza configuración de respaldo fuera de rango',async()=>{
   const r=await request('PUT','/api/backups/automatic',{enabled:true,frequency:'daily',time:'25:90',keep:0});
   assert.equal(r.status,400);

@@ -65,6 +65,16 @@ jobs:
         run: npx electron-builder --win nsis --publish never
       - name: Arrancar ejecutable empaquetado y verificar interfaz
         run: npm run qa:packaged
+      # electron-builder recompila better-sqlite3 para la ABI de Electron.
+      # La copia empaquetada ya quedó dentro del .exe; las pruebas siguientes
+      # se ejecutan con Node.js 22 y requieren la ABI nativa de Node.
+      - name: Restaurar better-sqlite3 para Node.js 22 despues de empaquetar Electron
+        shell: pwsh
+        run: |
+          npm rebuild better-sqlite3 --build-from-source --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo recompilar better-sqlite3 para Node.js 22' }
+          node tests/qa-node-sqlite-abi.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'better-sqlite3 sigue siendo incompatible con Node.js 22' }
       - name: Instalar, reinstalar y desinstalar sin perder datos SQLite
         run: npm run qa:install-upgrade
       - name: Actualización REAL 0.6.34 a 0.6.35 con datos comerciales persistentes

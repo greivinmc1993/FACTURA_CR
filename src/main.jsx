@@ -439,7 +439,7 @@ function backupFileDate(filename){
  const date=new Date(`${match[1]}T${match[2]}:${match[3]}:${match[4]}Z`);
  return Number.isNaN(date.getTime())?'Fecha no disponible':date.toLocaleString('es-CR',{dateStyle:'medium',timeStyle:'short'});
 }
-function BackupWorkspace({autoBackup,autoConfig,setAutoConfig,backupStatus,busy,downloadBackup,createAutoBackup,saveAutoBackup,refreshAutoBackup,refreshBackupStatus,restoreInput,restoreBackup,setMessage,sizeLabel}){
+function BackupWorkspace({autoBackup,autoConfig,setAutoConfig,backupStatus,busy,downloadBackup,createAutoBackup,saveAutoBackup,refreshAutoBackup,refreshBackupStatus,restoreInput,restoreBackup,restoreStage,setMessage,sizeLabel}){
  const files=Array.isArray(autoBackup?.files)?autoBackup.files:[];
  const latest=files[0]||null;
  const openFolder=async()=>{
@@ -481,6 +481,7 @@ function BackupWorkspace({autoBackup,autoConfig,setAutoConfig,backupStatus,busy,
      {autoBackup?.lastError&&<p className="warning">Último error: {autoBackup.lastError}</p>}
    </div>
   </div>
+  {restoreStage&&<div className="backupRestoreProgress" role="status" aria-live="polite"><span className="backupRestoreSpinner" aria-hidden="true"/><div><strong>Procesando respaldo</strong><p>{restoreStage}</p></div></div>}
   <div className="backupAdvanced"><details><summary>Restauración y opciones avanzadas</summary><p>Antes de restaurar, FacturaCR inspecciona el respaldo y muestra cuántas empresas, clientes, productos, ventas y proformas contiene. Solo tras tu confirmación reemplaza la información actual y crea una copia previa.</p><div className="actions"><button type="button" className="danger" disabled={busy} onClick={()=>restoreInput.current?.click()}>Restaurar archivo .sqlite</button><button type="button" className="secondary" disabled={busy} onClick={refreshAutoBackup}>Actualizar historial</button></div><input ref={restoreInput} type="file" accept=".sqlite" style={{display:'none'}} onChange={restoreBackup}/></details></div>
   <p className="backupFooterInfo">ⓘ Los respaldos automáticos solo se ejecutan con FacturaCR abierto. Si el programa estuvo cerrado, comprueba los respaldos pendientes cuando se vuelva a abrir. Mantén también una copia en un disco externo.</p>
  </section>;
@@ -491,9 +492,11 @@ function App(){
  const [backupStatus,setBackupStatus]=useState(null),[catalogPreview,setCatalogPreview]=useState(null),[catalogBusy,setCatalogBusy]=useState(false);
  const [bulkPreview,setBulkPreview]=useState(null),[bulkFile,setBulkFile]=useState(null),[bulkPrice,setBulkPrice]=useState(true),[bulkStock,setBulkStock]=useState(false),[bulkCabys,setBulkCabys]=useState(false),[bulkBusy,setBulkBusy]=useState(false);
  const [backupBusy,setBackupBusy]=useState(false);
+ const restoreRunningRef=useRef(false);
+ const [restoreStage,setRestoreStage]=useState('');
  const [autoBackup,setAutoBackup]=useState(null),[autoConfig,setAutoConfig]=useState({enabled:false,frequency:'daily',time:'20:00',keep:14});
  const [dialog,setDialog]=useState(null);
- const askConfirm=(title,description,action,danger=false)=>setDialog({title,description,action,danger});
+ const askConfirm=(title,description,action,danger=false,confirmLabel)=>setDialog({title,description,action,danger,confirmLabel});
  const closeDialog=()=>setDialog(null);
  const confirmDialog=()=>{const action=dialog?.action;setDialog(null);if(action)void action()};
  const [companies,setCompanies]=useState([]),[selected,setSelected]=useState(null),[tab,setTab]=useState('companies');
@@ -524,7 +527,8 @@ function App(){
  const restoreBackup=async(event)=>{
   const file=event.target.files?.[0];event.target.value='';if(!file)return;
   if(!file.name.toLowerCase().endsWith('.sqlite')){setMessage('Selecciona un archivo de respaldo .sqlite.');return}
-  if(backupBusy){setMessage('Ya se está procesando un respaldo.');return}
+  if(restoreRunningRef.current||backupBusy){setMessage('Ya se está procesando un respaldo.');return}
+  restoreRunningRef.current=true;setRestoreStage('Analizando el archivo seleccionado…');
   setBackupBusy(true);setMessage('Inspeccionando el respaldo antes de solicitar confirmación...');
   try{
    const response=await fetch('/api/backups/inspect',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:file});
@@ -535,19 +539,32 @@ function App(){
    const names=Array.isArray(summary.companyNames)&&summary.companyNames.length?`\nEmpresas en el archivo: ${summary.companyNames.join(', ')}${summary.companies>summary.companyNames.length?'…':''}`:'';
    const details=`Archivo: ${file.name}\n\nRESPALDO: ${summary.companies} empresa(s), ${summary.clients} cliente(s), ${summary.products} artículo(s), ${summary.sales} venta(s), ${summary.quotations} proforma(s).${names}\n\nDATOS ACTUALES: ${existing.companies} empresa(s), ${existing.clients} cliente(s), ${existing.products} artículo(s), ${existing.sales} venta(s), ${existing.quotations} proforma(s).\n\nSe REEMPLAZARÁ la información de TODAS las empresas. Se guardará una copia previa.`;
    setMessage('Respaldo íntegro y compatible. Revisa los datos antes de confirmar la restauración.');
-   askConfirm('Inspección de respaldo completada',details,()=>askConfirm('Confirmación final de restauración',`¿Confirmas REEMPLAZAR TODA la información actual con «${file.name}»? No se combinarán los datos.`,()=>performRestore(file),true),true);
-  }catch(err){setMessage('Restauración cancelada: '+err.message)}finally{setBackupBusy(false)}
+   askConfirm('Inspección de respaldo completada',details,()=>askConfirm('Confirmación final de restauración',`¿Confirmas REEMPLAZAR TODA la información actual con «${file.name}»? No se combinarán los datos.`,()=>performRestore(file),true,'Restaurar respaldo'),false,'Continuar');
+  }catch(err){setMessage('El respaldo no pudo inspeccionarse: '+err.message);setDialog({title:'No se pudo inspeccionar el respaldo',description:err.message,kind:'error',confirmLabel:'Aceptar'});}finally{restoreRunningRef.current=false;setRestoreStage('');setBackupBusy(false)}
  };
  const performRestore=async(file)=>{
+  // Bloqueo síncrono: evita solicitudes duplicadas incluso antes de que React repinte.
+  if(restoreRunningRef.current)return;
+  restoreRunningRef.current=true;
+  setRestoreStage('Restaurando datos… No cierres FacturaCR ni desconectes el equipo.');
   setBackupBusy(true);setMessage('Verificando respaldo y protegiendo los datos actuales...');
   try{
    const response=await fetch('/api/backups/restore',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:file});
    const type=response.headers.get('content-type')||'';
-   if(!type.includes('application/json'))throw Error(`El servidor devolvió HTML en vez de JSON (HTTP ${response.status}). Reinicia FacturaCR y vuelve a intentar. No se ha confirmado la restauración.`);
+   if(!type.includes('application/json'))throw Error(`El servidor no devolvió una respuesta JSON (HTTP ${response.status}). No repitas la restauración sin comprobar primero tus datos.`);
    const result=await response.json();if(!response.ok)throw Error(result.error||'No se pudo restaurar.');
-   setMessage('Restauración correcta. Se guardó una copia previa: '+result.previousBackup+'.');
-   localStorage.removeItem(ACTIVE_COMPANY_KEY);setSelected(null);setItems([]);setEditing(null);await refreshCompanies();
-  }catch(err){setMessage(err.message)}finally{setBackupBusy(false)}
+   if(!result.ok)throw Error(result.error||'El servidor no confirmó la restauración.');
+   // En este punto el servidor YA confirmó el reemplazo. Refrescar la vista es otra operación.
+   localStorage.removeItem(ACTIVE_COMPANY_KEY);setSelected(null);setItems([]);setEditing(null);
+   let refreshWarning='';
+   try{const updatedCompanies=await api('/api/companies');setCompanies(updatedCompanies);setSelected(updatedCompanies[0]?.id??null)}catch(err){refreshWarning=' No se pudo recargar la lista de empresas: '+err.message+'. Reinicia FacturaCR si no aparecen los datos.';}
+   const successText=`El respaldo «${file.name}» se restauró correctamente.\n\nSe creó una copia de seguridad de los datos anteriores: ${result.previousBackup||'copia previa guardada'}.\n\n${refreshWarning||'Puedes continuar trabajando con las empresas restauradas.'}`;
+   setMessage('Restauración completada correctamente. '+(result.previousBackup?`Copia previa: ${result.previousBackup}.`:'')+refreshWarning);
+   setDialog({title:'Restauración realizada con éxito',description:successText,kind:'success',confirmLabel:'Aceptar'});
+  }catch(err){
+   setMessage('No se pudo confirmar la restauración: '+err.message);
+   setDialog({title:'No se pudo completar la restauración',description:`${err.message}\n\nVerifica tus datos antes de intentar nuevamente.`,kind:'error',confirmLabel:'Aceptar'});
+  }finally{restoreRunningRef.current=false;setRestoreStage('');setBackupBusy(false)}
  };
  const refreshBackupStatus=async()=>{try{const status=await api('/api/backups/status');setBackupStatus(status);setMessage('')}catch(e){setBackupStatus(null);setMessage('No se pudo consultar el espacio de respaldos: '+e.message)}};
  const refreshAutoBackup=async()=>{try{const data=await api('/api/backups/automatic');setAutoBackup(data);setAutoConfig(data.config)}catch(e){setMessage('No se pudieron consultar los respaldos automáticos: '+e.message)}};
@@ -732,7 +749,7 @@ function App(){
   <button className={tab==='backups'?'navactive':''} onClick={()=>setTab('backups')}><span className="navIcon"><UiIcon name="backup" size={18}/></span><span>Respaldos</span></button><span>Facturas electrónicas · Próximamente</span><span>Usuarios y permisos · Próximamente</span>
  </nav><div className="sidebarBottom"><div className="sidebarProtection"><span className="sidebarProtectionIcon" aria-hidden="true"><UiIcon name="shield" size={18}/></span><strong>Tus datos, en tu equipo</strong><p>Historial guardado en SQLite. No se envía a la nube.</p></div><button type="button" className="sidebarBackupButton" onClick={()=>setTab('backups')}><span className="navIcon"><UiIcon name="backup" size={18}/></span><span>Respaldar base SQLite</span></button><small>FacturaCR · v{APP_VERSION}</small></div></aside><main>{tab!=='backups'&&<header><h2>{tab==='companies'?'Empresas':tab==='clients'?'Clientes':tab==='sales'?'Punto de venta':tab==='quotes'?'Cotizaciones y proformas':'Inventario y servicios'}</h2><p>Información guardada localmente y separada por empresa</p></header>}
  {message&&<p className="notice" role="status">{message}</p>}
- {tab==='backups'&&<BackupWorkspace autoBackup={autoBackup} autoConfig={autoConfig} setAutoConfig={setAutoConfig} backupStatus={backupStatus} busy={backupBusy} downloadBackup={downloadBackup} createAutoBackup={createAutoBackup} saveAutoBackup={saveAutoBackup} refreshAutoBackup={refreshAutoBackup} refreshBackupStatus={refreshBackupStatus} restoreInput={restoreInput} restoreBackup={restoreBackup} setMessage={setMessage} sizeLabel={sizeLabel}/>}
+ {tab==='backups'&&<BackupWorkspace autoBackup={autoBackup} autoConfig={autoConfig} setAutoConfig={setAutoConfig} backupStatus={backupStatus} busy={backupBusy} downloadBackup={downloadBackup} createAutoBackup={createAutoBackup} saveAutoBackup={saveAutoBackup} refreshAutoBackup={refreshAutoBackup} refreshBackupStatus={refreshBackupStatus} restoreInput={restoreInput} restoreBackup={restoreBackup} restoreStage={restoreStage} setMessage={setMessage} sizeLabel={sizeLabel}/>}
  {tab==='companies'?<section className="companiesWorkspace"><div className="companiesHero"><div><p className="companiesOverline">Gestión de comprobantes · Costa Rica</p><h3>Perfiles de empresas</h3><p className="hint">Administra los documentos de cada empresa por separado y cambia rápidamente entre ellas.</p></div><button type="button" onClick={createCompanyProfile}><UiIcon name="plus" size={15}/> Nueva empresa</button></div><div className="companiesInlineNotice">Las empresas comparten una base local, pero sus clientes, inventario, ventas y respaldos se manejan por separado.</div><div className="companyProfilesGrid">{companies.map(c=>{const title=c.trade_name||c.legal_name;const subtitle=c.identification||'Sin cédula configurada';const initial=(title||'E').charAt(0).toUpperCase();return <article key={c.id} className={'companyProfileCard '+(selected===c.id?'isSelected':'')}><div className="companyProfileHeader"><div className="companyProfileAvatar" style={{background:`linear-gradient(180deg, ${colorForCompany(c)}, ${colorForCompany(c)})`}}>{initial}</div>{selected===c.id&&<span className="companyProfileBadge">Activa</span>}</div><div className="companyProfileBody"><strong title={title}>{title}</strong><small title={subtitle}>{subtitle}</small></div><div className="companyProfileFooter"><button type="button" className="secondary" onClick={()=>openCompanyProfile(c)}><UiIcon name="store" size={15}/> Abrir perfil</button><div className="actions"><button type="button" className="secondary" onClick={()=>editCompany(c)}><UiIcon name="edit" size={14}/> Editar</button><button type="button" className="secondary" disabled title="Requiere autenticación del propietario"><UiIcon name="trash" size={14}/> Eliminar</button></div></div></article>})}<button type="button" className="companyProfileCard companyAddCard" onClick={createCompanyProfile}><span>＋</span><strong>Agregar empresa</strong><small>Crea un nuevo perfil para tus comprobantes.</small></button></div></section>:
  tab==='backups'?null:
  tab==='sales'?<SalesPanel companyId={selected} company={current} askConfirm={askConfirm}/>: 
@@ -826,9 +843,9 @@ function App(){
    <div className="companyModalFooter"><button type="button" className="secondary" onClick={closeCompanyModal} disabled={companySaving}>Cancelar</button><button type="submit" disabled={companySaving}>{companySaving?'Guardando…':editingCompany?'Guardar cambios':'✓ Crear empresa'}</button></div>
   </form>
  </section></div>}{dialog&&<div className="dialogOverlay" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)closeDialog()}}><section className="dialogCard" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-description" onKeyDown={e=>{if(e.key==='Escape'){e.preventDefault();closeDialog()}}}>
-  <div className="dialogSymbol" aria-hidden="true">{dialog.danger?'!':'✓'}</div>
+  <div className={'dialogSymbol '+(dialog.kind==='success'?'dialogSymbolSuccess':dialog.kind==='error'?'dialogSymbolError':'')} aria-hidden="true">{dialog.kind==='error'?'!':dialog.danger?'!':'✓'}</div>
   <h3 id="dialog-title">{dialog.title}</h3><p id="dialog-description">{dialog.description}</p>
-  <div className="dialogActions"><button type="button" className="secondary" autoFocus onClick={closeDialog}>Cancelar</button><button type="button" className={dialog.danger?'danger':''} onClick={confirmDialog}>{dialog.danger?'Eliminar':'Confirmar'}</button></div>
+  <div className="dialogActions">{dialog.kind!=='success'&&dialog.kind!=='error'&&<button type="button" className="secondary" autoFocus onClick={closeDialog}>Cancelar</button>}<button type="button" autoFocus={dialog.kind==='success'||dialog.kind==='error'} className={dialog.danger?'danger':''} onClick={dialog.kind==='success'||dialog.kind==='error'?closeDialog:confirmDialog}>{dialog.confirmLabel||(dialog.kind==='success'||dialog.kind==='error'?'Aceptar':dialog.danger?'Eliminar':'Confirmar')}</button></div>
  </section></div>}</div>;
 }
 createRoot(document.getElementById('root')).render(<ScreenErrorBoundary><App/></ScreenErrorBoundary>);

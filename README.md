@@ -1,6 +1,14 @@
-## FacturaCR v0.6.37 — Inspección segura antes de restaurar
+## FacturaCR v0.6.38 — Confirmación clara al restaurar respaldos
 
-Al seleccionar un archivo `.sqlite` en Respaldos, la aplicación verifica su integridad y muestra una comparación de registros del respaldo frente a la base activa. Se conserva la doble confirmación y la copia previa. La inspección no modifica las empresas actuales. Consulta `NOTAS_VERSION_0.6.37.md`.
+- Primer diálogo: **Continuar**, no Eliminar.
+- Confirmación final: **Restaurar respaldo**, resaltada como acción de reemplazo.
+- Tras el éxito del servidor: ventana **Restauración realizada con éxito**, con botón **Aceptar** y nombre de la copia previa.
+- Se conservan la inspección de SQLite, la copia previa y las confirmaciones.
+- Ejecuta `npm test`, `npm run build` y `npm run dist:win`; GitHub Actions ejecutará QA de Windows.
+
+## FacturaCR v0.6.38 — Inspección segura antes de restaurar
+
+Al seleccionar un archivo `.sqlite` en Respaldos, la aplicación verifica su integridad y muestra una comparación de registros del respaldo frente a la base activa. Se conserva la doble confirmación y la copia previa. La inspección no modifica las empresas actuales. Consulta `NOTAS_VERSION_0.6.38.md`.
 
 ## FacturaCR v0.6.27 — Precio final con IVA incluido
 
@@ -32,7 +40,7 @@ La información continúa almacenada en la base SQLite habitual; no reemplaces n
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.37-blue" alt="Versión 0.6.9.2" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.38-blue" alt="Versión 0.6.9.2" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>
@@ -417,3 +425,8 @@ Este ensayo no se ejecuta contra los datos de un cliente y no equivale a una cer
 - El QA Windows conserva el ensayo de migración desde la referencia congelada v0.6.34 hacia la versión actual.
 
 **Límite:** no sustituye una prueba de impresión física ni una restauración supervisada en un equipo Windows real.
+
+
+## Cambios de la versión 0.6.39
+
+La restauración SQLite ahora incluye un indicador de operación activa, evita envíos repetidos, muestra errores en un diálogo claro y distingue el éxito de la restauración de cualquier fallo posterior al refrescar las empresas. Consulta `NOTAS_VERSION_0.6.39.md`.

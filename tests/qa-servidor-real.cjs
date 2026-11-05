@@ -155,6 +155,29 @@ async function main(){
   const r=await request('PUT','/api/backups/automatic',{enabled:true,frequency:'daily',time:'25:90',keep:0});
   assert.equal(r.status,400);
  });
+ await test('Dashboard avanzado con SQLite nativo: filtros y pagos de empresa',async()=>{
+  const base='/api/companies/1/dashboard?from=2026-03-01&to=2026-03-31';
+  let r=await request('GET',base);
+  assert.equal(r.status,200,JSON.stringify(r.body));
+  assert.equal(r.body.summary.sale_count,2);assert.equal(r.body.summary.annulled_count,1);
+  assert.equal(r.body.summary.revenue_cents,339000);assert.equal(r.body.summary.collected_cents,113000);
+  r=await request('GET',base+'&method=Efectivo');assert.equal(r.status,200);
+  assert.equal(r.body.summary.sale_count,1);assert.equal(r.body.summary.revenue_cents,113000);
+  r=await request('GET',base+'&status=anuladas');assert.equal(r.status,200);
+  assert.equal(r.body.summary.revenue_cents,0);assert.equal(r.body.sales_count,1);
+  r=await request('GET',base+'&type=credito');assert.equal(r.status,200);
+  assert.equal(r.body.summary.sale_count,1);assert.equal(r.body.outstanding.balance_cents,126000);
+ });
+ await test('Dashboard avanzado exporta CSV completo y HTML imprimible',async()=>{
+  const endpoint='/api/companies/1/dashboard/';
+  const query='from=2026-03-01&to=2026-03-31&kind=detallado';
+  let response=await fetch(`${base}${endpoint}export.csv?${query}`);
+  assert.equal(response.status,200);const csv=await response.text();
+  assert.ok(csv.includes('Número venta'));assert.ok(csv.includes('Servicio QA'));
+  response=await fetch(`${base}${endpoint}export.html?${query}`);
+  assert.equal(response.status,200);const html=await response.text();
+  assert.ok(html.includes('Detalle completo de ventas filtradas'));assert.ok(html.includes('Servicio QA')===false||html.includes('Reporte comercial'));
+ });
  console.log(`QA servidor REAL: ${checks}/${checks} pruebas aprobadas`);
 }
 main().catch(err=>{console.error('QA servidor REAL falló:',err.stack||err);process.exitCode=1})

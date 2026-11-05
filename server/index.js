@@ -1,3 +1,4 @@
+import { registerDashboardRoutes } from './dashboard.js';
 import { makeXlsx } from './xlsx.js';
 import express from 'express';
 import Database from 'better-sqlite3';
@@ -797,49 +798,8 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.json(rows);
     }catch(e){res.status(400).json({error:e.message})}
   });
-  // Dashboard empresarial: agregados directos en SQLite, sin límite de las últimas 500 ventas.
-  // Fechas expresadas en UTC, igual que CURRENT_TIMESTAMP de las tablas de ventas.
-  app.get('/api/companies/:companyId/dashboard',(req,res)=>{
-    try{
-      const companyId=saleCompany(req);
-      const from=String(req.query.from||'');const to=String(req.query.to||'');
-      const valid=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
-      if(!valid(from)||!valid(to)||from>to)throw Error('Indica fechas válidas (AAAA-MM-DD) y un rango correcto.');
-      const maxRangeDays=366;
-      if((Date.parse(to+'T00:00:00Z')-Date.parse(from+'T00:00:00Z'))/86400000>maxRangeDays)throw Error('El rango máximo es de 367 días.');
-      // Evita envolver created_at en DATE(): permite aprovechar el índice company_id + fecha.
-      const start=from+' 00:00:00',end=to+' 23:59:59';
-      const summary=db.prepare(`SELECT COUNT(*) AS sale_count,
-        COALESCE(SUM(total_cents),0) AS revenue_cents,
-        COALESCE(SUM(subtotal_cents-discount_cents),0) AS net_base_cents,
-        COALESCE(SUM(tax_cents),0) AS tax_cents,
-        COALESCE(SUM(paid_cents),0) AS paid_cents,
-        COALESCE(SUM(CASE WHEN sale_type='credito' THEN balance_cents ELSE 0 END),0) AS period_balance_cents
-        FROM sales WHERE company_id=? AND status='activa' AND created_at BETWEEN ? AND ?`).get(companyId,start,end);
-      const annulled=db.prepare(`SELECT COUNT(*) AS count FROM sales
-        WHERE company_id=? AND status='anulada' AND created_at BETWEEN ? AND ?`).get(companyId,start,end).count;
-      const outstanding=db.prepare(`SELECT COUNT(*) AS count,COALESCE(SUM(balance_cents),0) AS balance_cents
-        FROM sales WHERE company_id=? AND status='activa' AND sale_type='credito' AND balance_cents>0`).get(companyId);
-      const daily=db.prepare(`SELECT substr(created_at,1,10) AS day,COUNT(*) AS sales,
-        COALESCE(SUM(total_cents),0) AS revenue_cents
-        FROM sales WHERE company_id=? AND status='activa' AND created_at BETWEEN ? AND ?
-        GROUP BY substr(created_at,1,10) ORDER BY day ASC`).all(companyId,start,end);
-      const top=db.prepare(`SELECT l.product_id,l.description,
-        COALESCE(SUM(l.quantity),0) AS units,
-        COALESCE(SUM(l.total_cents),0) AS revenue_cents
-        FROM sale_lines l JOIN sales s ON s.id=l.sale_id
-        WHERE s.company_id=? AND s.status='activa' AND s.created_at BETWEEN ? AND ?
-        GROUP BY l.product_id,l.description ORDER BY units DESC,revenue_cents DESC LIMIT 8`).all(companyId,start,end);
-      const methods=db.prepare(`SELECT p.method,COUNT(*) AS operations,
-        COALESCE(SUM(p.amount_cents),0) AS amount_cents FROM sale_payments p
-        JOIN sales s ON s.id=p.sale_id
-        WHERE s.company_id=? AND s.status='activa' AND p.created_at BETWEEN ? AND ?
-        GROUP BY p.method ORDER BY amount_cents DESC`).all(companyId,start,end);
-      res.json({company_id:companyId,from,to,timezone:'UTC',
-        summary:{...summary,annulled_count:annulled,average_ticket_cents:summary.sale_count?Math.round(summary.revenue_cents/summary.sale_count):0},
-        outstanding,daily,top_products:top,payment_methods:methods});
-    }catch(err){res.status(400).json({error:err.message})}
-  });
+  // Dashboard de reportes, filtros y exportaciones: consultas SQL de solo lectura por empresa.
+  registerDashboardRoutes(app,db,saleCompany);
   // Ajustes reutilizables de proformas; no es necesario configurar el logo cada vez.
   const quoteDefaults={valid_days:15,show_logo:true,logo:'',terms:'Precios sujetos a disponibilidad. Esta cotización no constituye factura ni reserva de inventario.'};
   app.get('/api/companies/:companyId/quote-settings',(req,res)=>{

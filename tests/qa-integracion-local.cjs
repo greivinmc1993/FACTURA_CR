@@ -18,6 +18,7 @@ assert.ok(serverText.includes("import Database from 'better-sqlite3'"));
 serverText=serverText.replace("import express from 'express'","import express from './express.mjs'")
  .replace("import Database from 'better-sqlite3'","import Database from './sqlite.mjs'");
 fs.writeFileSync(path.join(staging,'index.mjs'),serverText);
+fs.copyFileSync(path.join(root,'server','dashboard.js'),path.join(staging,'dashboard.js'));
 for(const name of ['express.mjs','sqlite.mjs'])fs.copyFileSync(path.join(__dirname,'qa-adapters',name),path.join(staging,name));
 fs.copyFileSync(path.join(root,'server','xlsx.js'),path.join(staging,'xlsx.js'));
 // El módulo ESM se interpreta como ESM incluso si el proyecto padre usa CommonJS.
@@ -31,23 +32,24 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
  const dbPath=path.join(temp,'db','facturacr.sqlite');
  const read=()=>new DatabaseSync(dbPath,{readOnly:true});
  const call=async(method,url,body={})=>{
+  const parsedUrl=new URL(url,'http://localhost');const pathname=parsedUrl.pathname;
   const route=routes.find(r=>{
    if(r.method!==method)return false;
    const matcher=new RegExp('^'+r.path.replace(/:[A-Za-z][A-Za-z0-9_]*/g,'[^/]+').replace(/\//g,'\\/')+'$');
-   return matcher.test(url);
+   return matcher.test(pathname);
   });
   assert.ok(route,`Ruta inexistente ${method} ${url}`);
   const keys=[...route.path.matchAll(/:([A-Za-z][A-Za-z0-9_]*)/g)].map(m=>m[1]);
-  const actualParts=url.split('/'),routeParts=route.path.split('/'),params={};
+  const actualParts=pathname.split('/'),routeParts=route.path.split('/'),params={};
   routeParts.forEach((part,i)=>{if(part.startsWith(':'))params[part.slice(1)]=actualParts[i]});
   let status=200,result,completed=false;
   const res={headersSent:false,status(s){status=s;return this},json(v){result=v;completed=true;return this},setHeader(){},type(){return this},send(v){result=v;completed=true;return this}};
-  await route.handler({params,body,headers:{},query:{},originalUrl:url},res);
+  await route.handler({params,body,headers:{},query:Object.fromEntries(parsedUrl.searchParams),originalUrl:url},res);
   assert.equal(completed,true,`Sin respuesta ${method} ${url}`);
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.41')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.42')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -151,6 +153,56 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    const start=performance.now();for(let i=0;i<1000;i++)assert.equal(stmt.get(`SKU${i*9}`).stock,100);
    const ms=Math.round(performance.now()-start);assert.ok(ms<5000,`1.000 consultas tardaron ${ms} ms`);db.close();
    console.log('   Datos sintéticos, 10.000 artículos y 1.000 búsquedas:',ms,'ms (NO representa el rendimiento de Electron)');
+  });
+  await check('Dashboard avanzado: métricas, cliente, condición y separación entre empresas',async()=>{
+   const range='from=2026-01-01&to=2026-12-31';
+   let r=await call('GET',`/api/companies/${a}/dashboard?${range}`);
+   assert.equal(r.status,200,JSON.stringify(r.body));assert.ok(r.body.summary.revenue_cents>0);
+   assert.ok(r.body.summary.annulled_count>=1);assert.ok(r.body.top_clients.length>=1);
+   assert.ok(r.body.sale_types.length>=1);assert.ok(r.body.summary.units>=1);
+   r=await call('GET',`/api/companies/${b}/dashboard?${range}`);assert.equal(r.status,200);assert.equal(r.body.summary.revenue_cents,0);
+   r=await call('GET',`/api/companies/${a}/dashboard?${range}&client=${clientId}`);assert.equal(r.status,200);assert.ok(r.body.summary.revenue_cents>0);
+   assert.ok(r.body.top_clients.every(c=>c.client_id===clientId));
+   r=await call('GET',`/api/companies/${a}/dashboard?${range}&client=${clientId}&type=credito`);assert.equal(r.status,200);assert.ok(r.body.sale_types.every(x=>x.type==='credito'));
+   r=await call('GET',`/api/companies/${b}/dashboard?${range}&client=${clientId}`);assert.equal(r.status,400);
+  });
+  await check('Dashboard: método, estado y paginación',async()=>{
+   const base=`/api/companies/${a}/dashboard`;
+   let r=await call('GET',base+'?from=2026-01-01&to=2026-12-31&method=Tarjeta');
+   assert.equal(r.status,200,JSON.stringify(r.body));assert.ok(r.body.summary.sale_count>=1);
+   assert.ok(r.body.payment_methods.every(x=>x.method==='Tarjeta'));
+   r=await call('GET',base+'?from=2026-01-01&to=2026-12-31&status=anuladas');
+   assert.equal(r.status,200);assert.equal(r.body.summary.revenue_cents,0);assert.ok(r.body.sales_count>=1);
+   r=await call('GET',base+'/sales?from=2026-01-01&to=2026-12-31&page=1');assert.equal(r.status,200);
+   assert.ok(r.body.rows.length<=50);assert.ok(r.body.rows.every(x=>x.status==='activa'));
+   r=await call('GET',base+'/sales?from=2026-01-01&to=2026-12-31&page=0');assert.equal(r.status,400);
+  });
+  await check('Exportación CSV y PDF contiene los datos solicitados',async()=>{
+   const base=`/api/companies/${a}/dashboard/`,q='from=2026-01-01&to=2026-12-31&kind=detallado';
+   let r=await call('GET',base+'export.csv?'+q);
+   assert.equal(r.status,200,JSON.stringify(r.body));assert.ok(r.body.includes('Número venta'));assert.ok(r.body.includes('Filtro desde UTC'));
+   assert.ok(r.body.includes('Cliente QA'));
+   r=await call('GET',base+'export.html?'+q);assert.equal(r.status,200);
+   assert.ok(r.body.includes('Reporte comercial'));assert.ok(r.body.includes('Detalle completo'));
+   assert.ok(r.body.includes('Cliente QA'));
+  });
+  await check('CSV detallado exporta más de 500 ventas mientras la tabla pagina de 50 en 50',async()=>{
+   const bulk=new DatabaseSync(dbPath);
+   try{
+    const insert=bulk.prepare("INSERT INTO sales(company_id,sale_type,status,subtotal_cents,discount_cents,tax_cents,total_cents,paid_cents,balance_cents,created_at) VALUES (?, 'contado','activa',100,0,13,113,113,0,'2026-05-04 12:00:00')");
+    bulk.exec('BEGIN');for(let i=0;i<510;i++)insert.run(a);bulk.exec('COMMIT');
+   }finally{bulk.close()}
+   const q='from=2026-05-04&to=2026-05-04';
+   const page1=await call('GET',`/api/companies/${a}/dashboard/sales?${q}&page=1`);
+   const page2=await call('GET',`/api/companies/${a}/dashboard/sales?${q}&page=2`);
+   assert.equal(page1.status,200);assert.equal(page1.body.total,510);assert.equal(page1.body.rows.length,50);assert.equal(page2.body.rows.length,50);
+   const csv=await call('GET',`/api/companies/${a}/dashboard/export.csv?${q}&kind=detallado`);
+   assert.equal(csv.status,200);assert.equal(csv.body.trim().split('\r\n').length,512,'sep=; + cabecera + 510 ventas');
+  });
+  await check('Dashboard rechaza fechas, clientes y filtros inválidos',async()=>{
+   for(const suffix of ['from=2026-02-30&to=2026-03-01','from=2026-12-31&to=2026-01-01','from=2026-01-01&to=2026-12-31&type=incorrecto','from=2026-01-01&to=2026-12-31&method=Inexistente']){
+    const r=await call('GET',`/api/companies/${a}/dashboard?${suffix}`);assert.equal(r.status,400,suffix);
+   }
   });
  } finally{await started.close()}
  console.log(`QA integración local: ${passed} superadas / ${passed+failed}, ${failed} errores`);

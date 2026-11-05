@@ -607,3 +607,39 @@ button.posClientChangeButton{font-size:12px;flex-shrink:0;padding:9px 12px}
 .bizDashTopList{display:grid;gap:0}.bizDashTopLine{display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #e6efec}.bizDashTopLine:last-child{border:0}.bizDashRank{width:27px;height:27px;flex:0 0 27px;display:grid;place-items:center;border-radius:10px;background:#e5f6f0;color:#0f806d;font-weight:800}.bizDashTopName{flex:1;min-width:0;display:grid;gap:3px}.bizDashTopName strong{font-size:.87rem;color:#243c4d;overflow-wrap:anywhere}.bizDashTopName small{color:#667d81}.bizDashTopLine>b{color:#0d6257;font-size:.9rem;font-variant-numeric:tabular-nums}
 .bizDashMethods{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:10px}.bizDashMethod{padding:14px;background:#f3faf8;border:1px solid #d9ebe5;border-radius:12px;display:grid;gap:6px}.bizDashMethod strong{color:#1c4750}.bizDashMethod small{color:#667d80}.bizDashMethod b{font-size:1.1rem;color:#07665b}.bizDashEmpty{border:1px dashed #ccdeda;background:#f8fbfa;padding:26px;border-radius:12px;color:#617a79;text-align:center}.bizDashFootnote{font-size:.78rem;color:#69818b;line-height:1.65}.bizDashError{border:1px solid #eebdbd!important;background:#fff7f7!important;color:#a22835}
 @media(max-width:1050px){.bizDashMetrics{grid-template-columns:repeat(2,minmax(0,1fr))}.bizDashGrid{grid-template-columns:1fr}}@media(max-width:560px){.bizDashMetrics{grid-template-columns:1fr}.bizDashFilters>label,.bizDashFilters>label input{width:100%}.bizDashPresets{width:100%}.bizDashPresets button{flex:1}.bizDashHero>button{width:100%}}
+
+/* FacturaCR 0.6.42 · dashboard avanzado con distribución equilibrada y exportaciones. */
+.bizDashAdvanced{gap:17px}
+.bizDashAdvanced .bizDashHero{padding:24px 26px;border-radius:18px}
+.bizDashFiltersAdvanced{display:grid;gap:17px;padding:22px;border:1px solid #d7e6e3;border-radius:18px}
+.bizDashFilterHeading{display:grid;gap:4px}.bizDashFilterHeading strong{color:#134a50;font-size:1.05rem}.bizDashFilterHeading span{font-size:.82rem;color:#657a83}
+.bizDashPresets{gap:7px}.bizDashPresets button{padding:9px 14px}
+.bizDashFilterGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bizDashFilterGrid label{display:grid;gap:6px;font-size:.81rem;color:#496373;font-weight:750;min-width:0}
+.bizDashFilterGrid input,.bizDashFilterGrid select{width:100%;min-width:0;min-height:43px;border-radius:10px;background:#fff}
+.bizDashClientChoices{display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:relative}
+.bizDashChoice{padding:8px 13px;border:1px solid #cfdfdc;border-radius:99px;background:#f6faf9;color:#3c5a63;cursor:pointer}
+.bizDashChoice.active{background:#dff5ed;color:#0d6858;border-color:#8bcbba;font-weight:800}
+.bizDashClientResults{flex:1 1 100%;max-height:230px;overflow:auto;border:1px solid #d5e5e3;background:white;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:5px;padding:8px;border-radius:13px;box-shadow:0 8px 26px #19324813}
+.bizDashClientResults button{text-align:left;border:0;padding:9px;background:#f5faf8;color:#1b4350;border-radius:9px;display:grid;gap:4px}.bizDashClientResults small{color:#607986}
+.bizDashExportBar{border-top:1px solid #e2e9ed;padding-top:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.bizDashExportBar>strong{color:#214854}.bizDashExportActions{display:flex;flex-wrap:wrap;gap:8px}.bizDashExportActions button{min-width:125px}
+.bizDashMetricsExtended{grid-template-columns:repeat(4,minmax(0,1fr))}
+.bizDashAdvanced .bizDashMetric{min-height:145px;grid-template-rows:auto 1fr auto;border-radius:17px;gap:9px;padding:17px 19px}
+.bizDashMetricTop{display:flex;align-items:center;justify-content:space-between;gap:8px}.bizDashMetricTop>span:first-child{font-size:.8rem;color:#426768}
+.bizDashMetricIcon{display:grid;place-items:center;font-size:18px!important;width:33px;height:33px;border-radius:11px;background:#e3f2ed;color:#0d816e!important}
+.bizDashMetric-blue .bizDashMetricIcon{background:#e6f0fb;color:#236b9e!important}.bizDashMetric-amber .bizDashMetricIcon{background:#fff1d9;color:#a76b12!important}
+.bizDashMetric-blue{background:linear-gradient(140deg,#fff,#f0f7fd)}.bizDashMetric-amber{background:linear-gradient(140deg,#fff,#fff9ec)}
+.bizDashAdvanced .bizDashMetric strong{font-size:clamp(1.18rem,1.9vw,1.65rem)}
+.bizDashBalancedGrid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+.bizDashAdvanced .bizDashSection{padding:21px 23px;min-height:260px;border:1px solid #e1ebed;border-radius:17px;box-shadow:0 3px 16px rgba(22,43,57,.035)}
+.bizDashSectionHead{border-bottom:1px solid #e7edef;margin-bottom:14px;padding-bottom:6px}.bizDashAdvanced .bizDashSectionHead .hint{line-height:1.5}
+.bizDashPlot{min-height:215px;display:flex;flex-direction:column;justify-content:center}.bizDashPlot .bizDashBars{height:205px}
+.bizDashRanking{display:grid}.bizDashRankingRow{display:flex;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid #e7efef}.bizDashRankingRow:last-child{border:0}.bizDashRankingName{flex:1;min-width:0;display:grid;gap:4px}.bizDashRankingName strong{overflow-wrap:anywhere;color:#1b3c4a;font-size:.85rem}.bizDashRankingName small{color:#607c80;font-size:.76rem}.bizDashRankingRow>b{font-size:.86rem;color:#0f6f60;white-space:nowrap}
+.bizDashAdvanced .bizDashMethods{grid-template-columns:repeat(2,minmax(0,1fr))}.bizDashAdvanced .bizDashMethod{min-height:96px}
+.bizDashSplitStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.bizDashSplitStats>div{background:#f2f9f7;border:1px solid #d7e9e2;border-radius:13px;padding:16px;display:grid;gap:9px}.bizDashSplitStats span{font-size:.86rem;color:#4b686b}.bizDashSplitStats b{font-size:1.3rem;color:#0d6a5b}.bizDashSplitStats small{color:#617b83}
+.bizDashFinancialRows{display:grid}.bizDashFinancialRows>div{display:flex;gap:12px;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e7eeef}.bizDashFinancialRows>div:last-child{border:0;font-size:1.13rem;color:#0d6a5b}.bizDashFinancialRows span{color:#49646e}.bizDashFinancialRows strong{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bizDashSalesSection{min-height:0!important}.bizDashSalesTableWrap{overflow-x:auto;max-width:100%;border:1px solid #e0eaed;border-radius:12px}.bizDashSalesTable{width:100%;border-collapse:collapse;min-width:850px}.bizDashSalesTable th{background:#edf6f3;color:#345664;padding:12px;text-align:left;font-size:.78rem;white-space:nowrap}.bizDashSalesTable td{padding:12px;border-top:1px solid #e8eef0;font-size:.8rem;white-space:nowrap;color:#254553}.bizDashSalesTable td small{display:block;color:#7a8c92;margin-top:4px}.bizDashStatus{border-radius:99px;padding:5px 9px;font-weight:750;font-size:.74rem}.bizDashStatus.isActive{background:#e1f5e9;color:#12694c}.bizDashStatus.isCancelled{background:#ffe9e9;color:#a42b3b}
+.bizDashPager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:15px;flex-wrap:wrap;color:#5d7781;font-size:.82rem}.bizDashPager>div{display:flex;gap:8px}.bizDashSuccess{background:#ecf9f1!important;color:#196846;border:1px solid #bbdfca!important}
+@media(max-width:1100px){.bizDashMetricsExtended{grid-template-columns:repeat(2,minmax(0,1fr))}.bizDashBalancedGrid{grid-template-columns:1fr}.bizDashFilterGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.bizDashMetricsExtended,.bizDashFilterGrid,.bizDashSplitStats{grid-template-columns:1fr}.bizDashAdvanced .bizDashMethods{grid-template-columns:1fr}.bizDashExportActions,.bizDashExportActions button{width:100%}.bizDashAdvanced .bizDashSection{padding:14px}.bizDashFiltersAdvanced{padding:15px}}

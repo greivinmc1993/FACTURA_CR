@@ -1,3 +1,15 @@
+# Versión 0.6.42 — Dashboard comercial avanzado
+
+- Diseño equilibrado en ocho tarjetas KPI, rankings, gráficas, resúmenes, pagos y tabla paginada.
+- Filtros combinables por fecha, cliente/consumidor final, condición, estado y método de pago.
+- Consultas SQL agregadas aisladas por empresa, sin depender de las últimas 500 ventas.
+- Exportaciones CSV resumen y detallado completo, PDF resumen vertical y detallado horizontal.
+- Protección contra fórmulas CSV en campos de texto y escapado HTML para documentos PDF.
+- QA nuevo para filtros, aislamiento, exportación y 510 ventas; conserva las pruebas anteriores.
+- Sin cambios de esquema SQLite ni alteraciones de ventas registradas.
+
+---
+
 ## 0.6.41 — Dashboard comercial
 - Dashboard por empresa con métricas, tendencias diarias, productos más vendidos y métodos de pago.
 - Rangos de fecha (UTC), períodos rápidos y exportación CSV.

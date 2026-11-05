@@ -1,65 +1,108 @@
 import React,{useCallback,useEffect,useMemo,useState} from 'react';
 
-const fmtMoney=cents=>'₡'+Math.round(Number(cents||0)/100).toLocaleString('es-CR');
-const utcDay=date=>date.toISOString().slice(0,10);
-const currentRange=()=>{const now=new Date();return {from:utcDay(new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1))),to:utcDay(now)}};
-const csvCell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+const money = cents=>'₡'+Math.round(Number(cents||0)/100).toLocaleString('es-CR');
+const dayUTC=d=>d.toISOString().slice(0,10);
+const defaultRange=()=>{const now=new Date();return {from:dayUTC(new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1))),to:dayUTC(now)};};
+const fmtCount=n=>Number(n||0).toLocaleString('es-CR');
+const numberOfPages=(total)=>Math.max(1,Math.ceil(total/50));
+const presetRange=(kind)=>{
+ const now=new Date(), today=dayUTC(now),y=now.getUTCFullYear(),m=now.getUTCMonth();
+ if(kind==='hoy')return {from:today,to:today};
+ if(kind==='ayer'){const d=new Date(now);d.setUTCDate(d.getUTCDate()-1);return {from:dayUTC(d),to:dayUTC(d)}};
+ if(kind==='semana'){const d=new Date(now);d.setUTCDate(d.getUTCDate()-(d.getUTCDay()+6)%7);return {from:dayUTC(d),to:today}};
+ if(kind==='mes')return {from:dayUTC(new Date(Date.UTC(y,m,1))),to:today};
+ return {from:dayUTC(new Date(Date.UTC(y,0,1))),to:today};
+};
+const downloadBlob=(blob,filename)=>{const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000)};
+const activeFilters=(from,to,client,type,method,status)=>new URLSearchParams({from,to,client,type,method,status}).toString();
+
+function Metric({label,value,note,icon,tone='green'}){return <div className={'bizDashMetric bizDashMetric-'+tone}><div className="bizDashMetricTop"><span>{label}</span><span className="bizDashMetricIcon" aria-hidden="true">{icon}</span></div><strong>{value}</strong><small>{note}</small></div>}
+function Section({title,description,children,extra=''}){return <article className={'card bizDashSection '+extra}><div className="bizDashSectionHead"><h4>{title}</h4><p className="hint">{description}</p></div>{children}</article>}
+function Ranking({items,label,unit}){return items.length?<div className="bizDashRanking">{items.map((p,i)=><div className="bizDashRankingRow" key={`${p.client_id??p.product_id??'x'}-${p.name||p.description}-${i}`}><span className="bizDashRank">{i+1}</span><div className="bizDashRankingName"><strong>{p.name||p.description}</strong><small>{fmtCount(unit==='clientes'?p.purchases:p.units)} {unit==='clientes'?'compras':'unidades'}{unit==='clientes'&&p.identification?' · '+p.identification:''}</small></div><b>{money(p.revenue_cents)}</b></div>)}</div>:<p className="bizDashEmpty">Sin movimientos para estos filtros.</p>}
 
 export default function DashboardPanel({companyId,company}){
- const initial=useMemo(currentRange,[]);
+ const initial=useMemo(defaultRange,[]);
  const [from,setFrom]=useState(initial.from),[to,setTo]=useState(initial.to);
- const [data,setData]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const [client,setClient]=useState('todos'),[clientSearch,setClientSearch]=useState(''),[clients,setClients]=useState([]);
+ const [type,setType]=useState('todas'),[method,setMethod]=useState('todas'),[status,setStatus]=useState('activas');
+ const [data,setData]=useState(null),[busy,setBusy]=useState(false),[exportBusy,setExportBusy]=useState(''),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const [page,setPage]=useState(1),[sales,setSales]=useState(null);
+ const query=useMemo(()=>activeFilters(from,to,client,type,method,status),[from,to,client,type,method,status]);
+ useEffect(()=>{setClient('todos');setClientSearch('');setClients([]);setMethod('todas');if(!companyId)return;
+  const ctrl=new AbortController();fetch(`/api/companies/${companyId}/clients`,{signal:ctrl.signal}).then(async r=>{if(!r.ok)throw Error('No se pudieron cargar los clientes.');return r.json()}).then(list=>{if(!ctrl.signal.aborted)setClients(list)}).catch(e=>{if(e.name!=='AbortError'&&!ctrl.signal.aborted)setError(e.message)});
+  return()=>ctrl.abort();
+ },[companyId]);
  const load=useCallback(async(signal)=>{
-  if(!companyId){setData(null);setError('');return}
-  setBusy(true);setError('');setData(null);
-  try{
-   const response=await fetch(`/api/companies/${companyId}/dashboard?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,{signal});
-   const json=await response.json();
-   if(!response.ok)throw Error(json.error||'No se pudo consultar el dashboard.');
-   if(!signal?.aborted)setData(json);
-  }catch(err){if(err.name!=='AbortError')setError(err.message)}finally{if(!signal?.aborted)setBusy(false)}
- },[companyId,from,to]);
+  if(!companyId){setData(null);return}
+  setBusy(true);setError('');setMessage('');setData(null);
+  try{const response=await fetch(`/api/companies/${companyId}/dashboard?${query}`,{signal});const json=await response.json();if(!response.ok)throw Error(json.error||'No se pudo cargar el dashboard.');if(!signal?.aborted)setData(json)}
+  catch(e){if(e.name!=='AbortError'&&!signal?.aborted)setError(e.message)}finally{if(!signal?.aborted)setBusy(false)}
+ },[companyId,query]);
  useEffect(()=>{const ctrl=new AbortController();load(ctrl.signal);return()=>ctrl.abort()},[load]);
- const setPreset=kind=>{const now=new Date();const today=utcDay(now);
-  if(kind==='month'){setFrom(utcDay(new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1))));setTo(today)}
-  if(kind==='week'){const day=now.getUTCDay();const monday=new Date(now);monday.setUTCDate(monday.getUTCDate()-((day+6)%7));setFrom(utcDay(monday));setTo(today)}
-  if(kind==='year'){setFrom(utcDay(new Date(Date.UTC(now.getUTCFullYear(),0,1))));setTo(today)}
+ useEffect(()=>{setPage(1)},[query,companyId]);
+ useEffect(()=>{if(!companyId||!data)return;
+  const ctrl=new AbortController();setSales(null);
+  fetch(`/api/companies/${companyId}/dashboard/sales?${query}&page=${page}`,{signal:ctrl.signal}).then(async r=>{const json=await r.json();if(!r.ok)throw Error(json.error||'No se pudo cargar el detalle.');return json}).then(json=>{if(!ctrl.signal.aborted)setSales(json)}).catch(e=>{if(e.name!=='AbortError'&&!ctrl.signal.aborted)setError(e.message)});
+  return()=>ctrl.abort();
+ },[companyId,query,page,data]);
+ const applyPreset=k=>{const range=presetRange(k);setFrom(range.from);setTo(range.to)};
+ const runExport=async(format,kind)=>{
+  if(!companyId||!data)return;
+  setExportBusy(`${format}:${kind}`);setError('');setMessage('');
+  try{
+   const response=await fetch(`/api/companies/${companyId}/dashboard/export.${format==='pdf'?'html':'csv'}?${query}&kind=${kind}`);
+   if(!response.ok){let detail='No se pudo generar el reporte.';try{detail=(await response.json()).error||detail}catch{}throw Error(detail)}
+   const name=`FacturaCR_${kind}_${from}_${to}`;
+   if(format==='csv'){downloadBlob(await response.blob(),name+'.csv');setMessage('Reporte CSV generado correctamente.')}
+   else{
+    if(!window.facturacrReports?.savePdf)throw Error('La exportación PDF requiere la aplicación FacturaCR de escritorio.');
+    const html=await response.text();const result=await window.facturacrReports.savePdf(html,name+'.pdf',{landscape:kind==='detallado'});
+    if(result?.cancelled)return;
+    if(!result?.success)throw Error(result?.error||'No se pudo guardar el PDF.');
+    setMessage('PDF guardado correctamente: '+result.path);
+   }
+  }catch(e){setError(e.message)}finally{setExportBusy('')}
  };
- const downloadCsv=()=>{
-  if(!data)return;
-  const rows=[['Fecha (UTC)','Ventas válidas','Ingresos CRC'],...data.daily.map(d=>[d.day,d.sales,(d.revenue_cents/100).toFixed(2)])];
-  const csv='\ufeff'+rows.map(row=>row.map(csvCell).join(';')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob);
-  const link=document.createElement('a');link.href=url;link.download=`FacturaCR_dashboard_${from}_${to}.csv`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),5000);
- };
- const stats=data?.summary;
- const peak=Math.max(1,...(data?.daily||[]).map(d=>Number(d.revenue_cents)||0));
- return <section className="bizDashboard">
-  <div className="card bizDashHero"><div><p className="bizDashEyebrow">ANÁLISIS COMERCIAL · DATOS LOCALES</p><h3>Resumen de {company?.trade_name||company?.legal_name||'tu empresa'}</h3><p className="hint">Ventas internas registradas en esta empresa. Se excluyen las anuladas. No es un reporte fiscal ni de utilidad neta.</p></div><button className="secondary" type="button" onClick={()=>load()} disabled={busy||!companyId}>↻ Actualizar</button></div>
-  <div className="card bizDashFilters"><div className="bizDashPresets"><button type="button" className="secondary" onClick={()=>setPreset('week')}>Esta semana</button><button type="button" className="secondary" onClick={()=>setPreset('month')}>Este mes</button><button type="button" className="secondary" onClick={()=>setPreset('year')}>Este año</button></div><label>Desde (UTC)<input aria-label="Fecha inicial del dashboard" type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Hasta (UTC)<input aria-label="Fecha final del dashboard" type="date" value={to} onChange={e=>setTo(e.target.value)}/></label><button type="button" className="secondary" onClick={downloadCsv} disabled={!data||busy}>Exportar CSV</button></div>
+ const visibleClients=clients.filter(c=>[c.name,c.trade_name,c.identification,c.phone,c.email].some(x=>String(x||'').toLowerCase().includes(clientSearch.toLowerCase().trim()))).slice(0,60);
+ const selectedClient=clients.find(c=>String(c.id)===client);
+ const s=data?.summary;const peak=Math.max(1,...(data?.daily||[]).map(d=>d.revenue_cents));
+ return <section className="bizDashboard bizDashAdvanced">
+  <div className="card bizDashHero"><div><p className="bizDashEyebrow">CENTRO DE INTELIGENCIA COMERCIAL · DATOS LOCALES</p><h3>{company?.trade_name||company?.legal_name||'Dashboard de tu empresa'}</h3><p className="hint">Indicadores y movimientos de la empresa activa, calculados directamente desde SQLite. Sin mezclar empresas.</p></div><button className="secondary" disabled={busy||!companyId} onClick={()=>load()}>↻ {busy?'Actualizando…':'Actualizar'}</button></div>
+  <div className="card bizDashFiltersAdvanced"><div className="bizDashFilterHeading"><strong>Filtros del reporte</strong><span>Las mismas condiciones se aplican al dashboard, a la tabla y a los archivos exportados.</span></div>
+   <div className="bizDashPresets">{[['hoy','Hoy'],['ayer','Ayer'],['semana','Esta semana'],['mes','Este mes'],['año','Este año']].map(([id,label])=><button type="button" className="secondary" key={id} onClick={()=>applyPreset(id)}>{label}</button>)}</div>
+   <div className="bizDashFilterGrid">
+    <label>Desde (UTC)<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>Hasta (UTC)<input type="date" value={to} onChange={e=>setTo(e.target.value)}/></label>
+    <label>Condición de venta<select value={type} onChange={e=>setType(e.target.value)}><option value="todas">Contado y crédito</option><option value="contado">Contado</option><option value="credito">Crédito</option></select></label>
+    <label>Estado<select value={status} onChange={e=>setStatus(e.target.value)}><option value="activas">Ventas activas</option><option value="anuladas">Solo anuladas</option><option value="todas">Todas (separadas)</option></select></label>
+    <label>Método de pago<select value={method} onChange={e=>setMethod(e.target.value)}><option value="todas">Todos los métodos</option>{(data?.methods_available||[]).map(m=><option key={m} value={m}>{m}</option>)}</select></label>
+    <label>Cliente<input type="search" value={clientSearch} onChange={e=>setClientSearch(e.target.value)} placeholder="Nombre, cédula, teléfono o correo"/></label>
+   </div>
+   <div className="bizDashClientChoices"><button type="button" className={client==='todos'?'bizDashChoice active':'bizDashChoice'} onClick={()=>setClient('todos')}>Todos los clientes</button><button type="button" className={client==='final'?'bizDashChoice active':'bizDashChoice'} onClick={()=>setClient('final')}>Consumidor final</button>{selectedClient&&<button type="button" className="bizDashChoice active" onClick={()=>{setClient('todos');setClientSearch('')}}>{selectedClient.name} ×</button>}{clientSearch.trim()&&<div className="bizDashClientResults" role="listbox" aria-label="Clientes coincidentes">{visibleClients.map(c=><button type="button" key={c.id} onClick={()=>{setClient(String(c.id));setClientSearch('')}}><strong>{c.name}</strong><small>{[c.identification,c.phone].filter(Boolean).join(' · ')}</small></button>)}{!visibleClients.length&&<span>No se encontraron clientes</span>}</div>}</div>
+   <div className="bizDashExportBar"><strong>Exportar información</strong><div className="bizDashExportActions">{[['csv','resumen','CSV resumen'],['csv','detallado','CSV detallado'],['pdf','resumen','PDF resumen'],['pdf','detallado','PDF detallado']].map(([format,kind,label])=><button key={label} type="button" className={format==='pdf'?'':'secondary'} disabled={!data||busy||!!exportBusy} onClick={()=>runExport(format,kind)}>{exportBusy===`${format}:${kind}`?'Generando…':label}</button>)}</div></div>
+  </div>
   {!companyId?<div className="card">Selecciona una empresa para consultar el dashboard.</div>:<>
-  {busy&&<div className="card" role="status">Consultando movimientos comerciales…</div>}
-  {error&&<div className="card bizDashError" role="alert">{error}</div>}
+  {busy&&<div className="card" role="status">Consultando datos comerciales y preparando indicadores…</div>}
+  {error&&<div className="card bizDashError" role="alert">{error}</div>}{message&&<div className="card bizDashSuccess" role="status">{message}</div>}
   {data&&<>
-   <div className="bizDashMetrics">
-    <div className="bizDashMetric"><span>Ventas del período</span><strong>{fmtMoney(stats.revenue_cents)}</strong><small>Ventas activas creadas en el período</small></div>
-    <div className="bizDashMetric"><span>Ventas registradas</span><strong>{Number(stats.sale_count).toLocaleString('es-CR')}</strong><small>{stats.annulled_count} anuladas excluidas</small></div>
-    <div className="bizDashMetric"><span>Ticket promedio</span><strong>{fmtMoney(stats.average_ticket_cents)}</strong><small>Promedio por venta activa</small></div>
-    <div className="bizDashMetric"><span>Crédito pendiente total</span><strong>{fmtMoney(data.outstanding.balance_cents)}</strong><small>{data.outstanding.count} ventas con saldo · todas las fechas</small></div>
+   <div className="bizDashMetrics bizDashMetricsExtended">
+    <Metric label="Ventas del período" value={money(s.revenue_cents)} icon="↗" note="Importe de ventas activas (con IVA)"/>
+    <Metric label="Cobros recibidos" value={money(s.collected_cents)} icon="₡" tone="blue" note="Pagos recibidos en estas fechas"/>
+    <Metric label="Crédito pendiente" value={money(data.outstanding.balance_cents)} icon="◷" tone="amber" note="Saldo histórico con filtros de cliente/condición"/>
+    <Metric label="Ticket promedio" value={money(s.average_ticket_cents)} icon="▤" note="Promedio por venta válida"/>
+    <Metric label="Ventas activas" value={fmtCount(s.sale_count)} icon="✓" tone="blue" note={`${fmtCount(s.annulled_count)} ventas anuladas en el filtro`}/>
+    <Metric label="Clientes compradores" value={fmtCount(s.distinct_clients)} icon="♙" note="Clientes registrados distintos"/>
+    <Metric label="Unidades vendidas" value={fmtCount(s.units)} icon="▣" tone="blue" note="Unidades de líneas vendidas"/>
+    <Metric label="IVA del período" value={money(s.tax_cents)} icon="%" tone="amber" note="De las ventas activas del período"/>
    </div>
-   <div className="bizDashGrid">
-    <article className="card bizDashChart"><div className="bizDashSectionHead"><div><h4>Evolución de ventas</h4><p className="hint">Por fecha de registro de venta (UTC) · valores con IVA</p></div></div>
-     {data.daily.length?<div className="bizDashBars" aria-label="Gráfica de ingresos por fecha">{data.daily.map(d=><div className="bizDashBarItem" key={d.day} title={`${d.day}: ${fmtMoney(d.revenue_cents)} · ${d.sales} ventas`}><div className="bizDashBar" style={{height:`${Math.max(3,100*Number(d.revenue_cents)/peak)}%`}}/><small>{d.day.slice(5)}</small></div>)}</div>:<p className="bizDashEmpty">No hay ventas activas en estas fechas.</p>}
-     <div className="bizDashChartFooter"><span>Base después de descuento: <strong>{fmtMoney(stats.net_base_cents)}</strong></span><span>IVA: <strong>{fmtMoney(stats.tax_cents)}</strong></span></div>
-    </article>
-    <article className="card bizDashTop"><div className="bizDashSectionHead"><div><h4>Productos más vendidos</h4><p className="hint">Ordenados por unidades · excluye ventas anuladas</p></div></div>
-     {data.top_products.length?<div className="bizDashTopList">{data.top_products.map((p,i)=><div className="bizDashTopLine" key={`${p.product_id}-${p.description}`}><span className="bizDashRank">{i+1}</span><div className="bizDashTopName"><strong>{p.description}</strong><small>{Number(p.units).toLocaleString('es-CR')} unidades</small></div><b>{fmtMoney(p.revenue_cents)}</b></div>)}</div>:<p className="bizDashEmpty">No hay artículos vendidos en este período.</p>}
-    </article>
+   <div className="bizDashGrid bizDashBalancedGrid">
+    <Section title="Evolución de ventas" description="Por día de registro (UTC) · no incluye anuladas"><div className="bizDashPlot">{data.daily.length?<div className="bizDashBars" aria-label="Gráfica de ventas por fecha">{data.daily.map(d=><div className="bizDashBarItem" key={d.day} title={`${d.day}: ${money(d.revenue_cents)} · ${d.sales} ventas`}><div className="bizDashBar" style={{height:`${Math.max(4,100*d.revenue_cents/peak)}%`}}/><small>{d.day.slice(5)}</small></div>)}</div>:<p className="bizDashEmpty">No hay ventas activas en estas fechas.</p>}</div><div className="bizDashChartFooter"><span>Base sin IVA: <b>{money(s.net_base_cents)}</b></span><span>Descuentos: <b>{money(s.discount_cents)}</b></span><span>IVA: <b>{money(s.tax_cents)}</b></span></div></Section>
+    <Section title="Pagos recibidos" description="Por fecha de pago (UTC), incluyendo abonos de ventas anteriores"><div className="bizDashMethods">{data.payment_methods.length?data.payment_methods.map(p=><div className="bizDashMethod" key={p.method}><strong>{p.method}</strong><small>{fmtCount(p.operations)} movimientos</small><b>{money(p.amount_cents)}</b></div>):<p className="bizDashEmpty">Sin cobros para estos filtros.</p>}</div><div className="bizDashChartFooter"><strong>Total recibido: {money(s.collected_cents)}</strong></div></Section>
+    <Section title="Productos más vendidos" description="Ranking por unidades, únicamente ventas activas"><Ranking items={data.top_products} unit="productos"/></Section>
+    <Section title="Clientes con más compras" description="Ranking por importe comprado; incluye consumidor final"><Ranking items={data.top_clients} unit="clientes"/></Section>
    </div>
-   <article className="card bizDashBottom"><div className="bizDashSectionHead"><div><h4>Pagos recibidos por método</h4><p className="hint">Movimientos cobrados en el período, únicamente de ventas actualmente activas. Los abonos pueden corresponder a ventas anteriores.</p></div></div>
-     {data.payment_methods.length?<div className="bizDashMethods">{data.payment_methods.map(p=><div className="bizDashMethod" key={p.method}><strong>{p.method}</strong><small>{p.operations} movimiento(s)</small><b>{fmtMoney(p.amount_cents)}</b></div>)}</div>:<p className="bizDashEmpty">No hay pagos registrados en las fechas seleccionadas.</p>}
-   </article>
-   <p className="bizDashFootnote">Los importes están expresados en colones (CRC). Las fechas usan UTC, tal como se almacenan en SQLite. Las ventas del período representan operaciones creadas en el período, mientras los cobros se agrupan según su fecha de pago; no deben sumarse entre sí. El crédito pendiente incluye todas las fechas.</p>
+   <div className="bizDashGrid bizDashFinanceGrid"><Section title="Composición de ventas" description="Comparación de ventas a contado y crédito"><div className="bizDashSplitStats">{data.sale_types.length?data.sale_types.map(x=><div key={x.type}><span>{x.type==='contado'?'Contado':'Crédito'}</span><b>{money(x.amount_cents)}</b><small>{fmtCount(x.sales)} ventas</small></div>):<p className="bizDashEmpty">Sin ventas activas.</p>}</div></Section><Section title="Resumen comercial" description="Importes expresados en colones (CRC)"><div className="bizDashFinancialRows">{[['Subtotal sin descuentos',s.subtotal_cents],['Descuentos aplicados',-s.discount_cents],['Base después de descuentos',s.net_base_cents],['IVA de ventas',s.tax_cents],['Total de ventas',s.revenue_cents]].map(([label,value])=><div key={label}><span>{label}</span><strong>{value<0?'− '+money(-value):money(value)}</strong></div>)}</div></Section></div>
+   <Section title="Ventas filtradas" description={`Consulta por cliente, fecha, estado, condición y método · ${fmtCount(data.sales_count)} resultado(s)`} extra="bizDashSalesSection"><div className="bizDashSalesTableWrap"><table className="bizDashSalesTable"><thead><tr><th>#</th><th>Fecha (UTC)</th><th>Cliente</th><th>Condición</th><th>Estado</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Métodos</th></tr></thead><tbody>{(sales?.rows||data.recent_sales||[]).map(x=><tr key={x.id}><td>#{x.id}</td><td>{x.created_at}</td><td><strong>{x.client_name}</strong><small>{x.identification}</small></td><td>{x.sale_type}</td><td><span className={'bizDashStatus '+(x.status==='activa'?'isActive':'isCancelled')}>{x.status}</span></td><td>{money(x.total_cents)}</td><td>{money(x.paid_cents)}</td><td>{money(x.balance_cents)}</td><td>{x.methods||'Sin pagos'}</td></tr>)}</tbody></table>{sales?.rows?.length===0&&<p className="bizDashEmpty">No se encontraron ventas para estos filtros.</p>}</div><div className="bizDashPager"><span>Página {page} de {numberOfPages(sales?.total??data.sales_count)} · {fmtCount(sales?.total??data.sales_count)} registros</span><div><button type="button" className="secondary" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>‹ Anterior</button><button type="button" className="secondary" disabled={page>=numberOfPages(sales?.total??data.sales_count)} onClick={()=>setPage(p=>p+1)}>Siguiente ›</button></div></div></Section>
+   <p className="bizDashFootnote">Ventas: fecha de registro UTC. Cobros: fecha de recepción UTC, aunque correspondan a ventas de otro período. El saldo pendiente es histórico y puede cambiar cuando se registran abonos. Los importes mostrados son comerciales internos, no utilidades netas ni comprobantes electrónicos fiscales.</p>
   </>}
   </>}
  </section>;

@@ -443,4 +443,20 @@ La restauración SQLite ahora incluye un indicador de operación activa, evita e
 
 Nueva sección **Dashboard** con fechas de registro en UTC, ventas activas, importes, ticket promedio, crédito pendiente, evolución diaria, top de artículos y cobros por método. Los resultados se agregan en SQLite sin el límite de las últimas 500 ventas. Permite exportar el detalle diario a CSV. No calcula utilidad neta ni sustituye reportes fiscales.
 
-Pruebas de dashboard: `npm test` y `npm run qa:real-server` (con dependencias nativas instaladas). Consulta `INFORME_QA_v0.6.41.md`.
+
+## Dashboard comercial avanzado (v0.6.42)
+
+El menú **Dashboard** incluye ocho indicadores comerciales, evolución diaria, ranking de productos y clientes, pagos por método, composición de ventas, resumen monetario y tabla de ventas con páginas de 50 filas.
+
+**Filtros:** desde/hasta UTC (hoy, ayer, semana, mes, año o fechas personalizadas), cliente registrado por nombre, identificación, teléfono o correo, consumidor final, condición de venta, estado y método de pago. Los reportes y archivos exportados usan los mismos filtros. Las empresas nunca se mezclan. Los valores de ventas excluyen anuladas, incluso cuando se muestran las anulaciones en la tabla. El indicador de crédito pendiente corresponde a saldos históricos de las ventas que cumplen los filtros no temporales, mientras los cobros son pagos realizados durante las fechas seleccionadas, incluso si provienen de ventas anteriores.
+
+**Exportaciones:**
+
+- **CSV resumen:** métricas, IVA/descuentos, productos, clientes, ventas por condición, pagos por método y evolución por día.
+- **CSV detallado:** una fila por venta, con empresa, período/filtros, número y fecha, cliente, identificación, contacto, estado, condición, subtotal, descuento, IVA, total, abonado, saldo, métodos, unidades y artículos. Exporta todas las ventas filtradas sin el límite de paginación de la pantalla.
+- **PDF resumen:** documento A4 vertical con identidad de empresa, métricas, rankings, pagos y ventas recientes.
+- **PDF detallado:** documento A4 horizontal con todas las ventas filtradas y totales, usando el generador PDF de Electron.
+
+Los PDF se guardan desde la aplicación de escritorio mediante el diálogo de Windows. La web de desarrollo muestra un error claro si se intenta guardar PDF fuera de Electron. Los archivos son **informes comerciales internos**, no documentos fiscales autorizados por Hacienda ni reportes de utilidad neta.
+
+**QA:** `npm test` cubre cálculo, contratos, rutas SQLite temporales, aislamiento de empresas, combinaciones de filtros, exportación CSV/PDF, paginación y más de 500 ventas. `npm run qa:real-server` requiere dependencias nativas y se ejecuta en GitHub Actions, junto con la compilación de Vite y las pruebas de Windows. La instalación continúa generándose con `npm run dist:win`.

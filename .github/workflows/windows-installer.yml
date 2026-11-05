@@ -33,6 +33,30 @@ jobs:
         run: npm test
       - name: Probar servidor HTTP con Express y SQLite nativos
         run: npm run qa:real-server
+      # Fuente congelada de la versión anterior. NO se toma del historial de git
+      # para que el ensayo sea reproducible incluso en clones superficiales.
+      - name: Extraer versión anterior v0.6.34 para prueba de actualización real
+        shell: pwsh
+        run: |
+          $baseline = Join-Path $env:RUNNER_TEMP 'facturacr-previous'
+          Expand-Archive -Path 'tests/fixtures/FacturaCR_v0.6.34_baseline.zip' -DestinationPath $baseline -Force
+          $version = (Get-Content (Join-Path $baseline 'package.json') -Raw | ConvertFrom-Json).version
+          if ($version -ne '0.6.34') { throw "La fuente anterior debe ser 0.6.34, encontrado: $version" }
+      - name: Instalar dependencias de la versión anterior
+        working-directory: ${{ runner.temp }}/facturacr-previous
+        run: npm ci --no-audit --no-fund
+      - name: Compilar interfaz de la versión anterior
+        working-directory: ${{ runner.temp }}/facturacr-previous
+        run: npm run build
+      - name: Generar instalador anterior v0.6.34 para migración
+        working-directory: ${{ runner.temp }}/facturacr-previous
+        run: npx electron-builder --win nsis --publish never
+      - name: Guardar instalador anterior separado del instalador actual
+        shell: pwsh
+        run: |
+          $previous = @(Get-ChildItem (Join-Path $env:RUNNER_TEMP 'facturacr-previous/release') -Filter '*.exe' -File)
+          if ($previous.Count -ne 1) { throw 'Se esperaba un instalador NSIS anterior, encontrado: ' + $previous.Count }
+          Copy-Item $previous[0].FullName (Join-Path $env:RUNNER_TEMP 'FacturaCR-previous-0.6.34.exe') -Force
       - name: Compilar interfaz React/Vite
         run: npm run build
       - name: Crear instalador NSIS Windows sin publicar
@@ -41,6 +65,14 @@ jobs:
         run: npm run qa:packaged
       - name: Instalar, reinstalar y desinstalar sin perder datos SQLite
         run: npm run qa:install-upgrade
+      - name: Actualización REAL 0.6.34 a 0.6.35 con datos comerciales persistentes
+        shell: pwsh
+        run: |
+          $current = @(Get-ChildItem 'release' -Filter '*.exe' -File)
+          if ($current.Count -ne 1) { throw 'Se esperaba un instalador actual NSIS' }
+          $env:FACTURACR_QA_PREVIOUS_INSTALLER = Join-Path $env:RUNNER_TEMP 'FacturaCR-previous-0.6.34.exe'
+          $env:FACTURACR_QA_CURRENT_INSTALLER = $current[0].FullName
+          npm run qa:version-upgrade
       - name: Guardar evidencia del arranque de Electron
         if: always()
         uses: actions/upload-artifact@v4

@@ -393,12 +393,23 @@ El workflow de Windows incorpora una prueba **adicional** con un NSIS instalado 
 
 Esta prueba se ejecuta solo en GitHub Actions Windows y no debe hacerse manualmente en una computadora con FacturaCR instalado. **No prueba aún una actualización entre dos versiones distintas** ni reemplaza la validación manual de Windows o restauración de respaldos. `npm test` sigue ejecutando las 39 verificaciones locales sin instalar nada.
 
-## QA de migración real entre versiones (v0.6.35)
+## QA de migración real entre versiones (v0.6.36)
 
 La suite local se ejecuta con **`npm test`**: 44 comprobaciones de cálculos, integración, inspección estática y contrato de actualización. El test de migración real entre instaladores necesita Windows y **solo corre en el runner temporal de GitHub Actions**.
 
-En el workflow **QA Windows e instalador**, GitHub construye el instalador anterior v0.6.34 desde `tests/fixtures/FacturaCR_v0.6.34_baseline.zip` (código congelado con SHA256), luego construye el instalador v0.6.35 e intenta instalar ambas versiones en secuencia en una ruta nueva de TEMP. Verifica empresas, clientes, productos, inventario, ventas, créditos, proformas y preferencias guardadas en SQLite, así como la lectura de datos históricos desde la API de la versión nueva.
+En el workflow **QA Windows e instalador**, GitHub construye el instalador anterior v0.6.34 desde `tests/fixtures/FacturaCR_v0.6.34_baseline.zip` (código congelado con SHA256), luego construye el instalador v0.6.36 e intenta instalar ambas versiones en secuencia en una ruta nueva de TEMP. Verifica empresas, clientes, productos, inventario, ventas, créditos, proformas y preferencias guardadas en SQLite, así como la lectura de datos históricos desde la API de la versión nueva.
 
 Los resultados y capturas quedan en *Actions → Artifacts → FacturaCR-Electron-Smoke-...*, archivo `cross-version-upgrade-report.json`. El instalador nuevo se publica por separado como `FacturaCR-Windows-NSIS-...`.
 
 Este ensayo no se ejecuta contra los datos de un cliente y no equivale a una certificación del instalador en todas las versiones de Windows. Consulta `INFORME_QA_v0.6.35.md` para el alcance y las limitaciones.
+
+
+## Actualización v0.6.36 — estabilidad en operaciones comerciales
+
+- Protección de doble envío para ventas, abonos y anulaciones mediante bloqueo inmediato y estado visual.
+- Se limpia el carrito al confirmarse la venta, antes de intentar impresión automática; un fallo de impresora no repite la venta.
+- `npm test` incluye las pruebas de contrato de prevención de doble operación.
+- `npm run qa:real-server` incluye verificaciones de respaldo real, integridad y rechazo de archivo inválido (base temporal).
+- El QA Windows conserva el ensayo de migración desde la referencia congelada v0.6.34 hacia la versión actual.
+
+**Límite:** no sustituye una prueba de impresión física ni una restauración supervisada en un equipo Windows real.

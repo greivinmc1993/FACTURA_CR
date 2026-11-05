@@ -50,6 +50,50 @@ async function main(){
       assert.equal(db.pragma('integrity_check',{simple:true}),'ok');}
   finally{db.close()}
  });
+ await test('Respaldo descargable es SQLite íntegro y contiene la empresa',async()=>{
+  const response=await fetch(base+'/api/backups/download');
+  assert.equal(response.status,200);
+  const bytes=Buffer.from(await response.arrayBuffer());
+  assert.equal(bytes.subarray(0,16).toString('ascii'),'SQLite format 3\0');
+  const backupPath=path.join(dir,'qa-backup-descargado.sqlite');
+  fs.writeFileSync(backupPath,bytes);
+  const Database=require('better-sqlite3');
+  const backup=new Database(backupPath,{readonly:true,fileMustExist:true});
+  try{
+   assert.equal(backup.pragma('integrity_check',{simple:true}),'ok');
+   assert.equal(backup.prepare('SELECT COUNT(*) AS n FROM companies').get().n,1);
+  }finally{backup.close()}
+ });
+ await test('Respaldo automático crea un archivo SQLite válido en carpeta temporal',async()=>{
+  const res=await request('POST','/api/backups/automatic/run');
+  assert.equal(res.status,200,JSON.stringify(res.body));
+  assert.equal(res.body.created,true);
+  const status=await request('GET','/api/backups/automatic');
+  assert.equal(status.status,200);
+  assert.ok(status.body.files.includes(res.body.file));
+  const Database=require('better-sqlite3');
+  const file=path.join(dir,'automatic-backups',res.body.file);
+  const backup=new Database(file,{readonly:true,fileMustExist:true});
+  try{assert.equal(backup.pragma('integrity_check',{simple:true}),'ok')}
+  finally{backup.close()}
+ });
+ await test('Restauración inválida se rechaza sin alterar los datos',async()=>{
+  const before=fs.statSync(path.join(dir,'facturacr.sqlite')).size;
+  const invalid=Buffer.alloc(1024,0x41);
+  const response=await fetch(base+'/api/backups/restore',{method:'POST',headers:{'content-type':'application/octet-stream','content-length':String(invalid.length)},body:invalid});
+  assert.equal(response.status,400);
+  const r=await request('GET','/api/companies');
+  assert.equal(r.status,200);assert.equal(r.body.length,1);
+  const Database=require('better-sqlite3');
+  const db=new Database(path.join(dir,'facturacr.sqlite'),{readonly:true});
+  try{assert.equal(db.pragma('integrity_check',{simple:true}),'ok')}
+  finally{db.close()}
+  assert.ok(fs.statSync(path.join(dir,'facturacr.sqlite')).size>=before);
+ });
+ await test('Se rechaza configuración de respaldo fuera de rango',async()=>{
+  const r=await request('PUT','/api/backups/automatic',{enabled:true,frequency:'daily',time:'25:90',keep:0});
+  assert.equal(r.status,400);
+ });
  console.log(`QA servidor REAL: ${checks}/${checks} pruebas aprobadas`);
 }
 main().catch(err=>{console.error('QA servidor REAL falló:',err.stack||err);process.exitCode=1})

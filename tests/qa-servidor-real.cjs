@@ -77,6 +77,30 @@ async function main(){
   try{assert.equal(backup.pragma('integrity_check',{simple:true}),'ok')}
   finally{backup.close()}
  });
+ await test('Inspección previa acepta copia SQLite válida sin reemplazar los datos',async()=>{
+  const backupPath=path.join(dir,'qa-backup-descargado.sqlite');
+  const bytes=fs.readFileSync(backupPath);
+  const response=await fetch(base+'/api/backups/inspect',{method:'POST',headers:{'content-type':'application/octet-stream','content-length':String(bytes.length)},body:bytes});
+  const result=await response.json();
+  assert.equal(response.status,200,JSON.stringify(result));
+  assert.equal(result.compatible,true);
+  assert.equal(result.backup.companies,1);
+  assert.equal(result.current.companies,1);
+  assert.equal(result.backup.companyNames[0],'Comercio temporal QA');
+  const after=await request('GET','/api/companies');
+  assert.equal(after.body[0].identification,'123456789');
+ });
+ await test('Inspección rechaza archivo inválido sin eliminar las empresas',async()=>{
+  const bytes=Buffer.alloc(2048,0x42);
+  const response=await fetch(base+'/api/backups/inspect',{method:'POST',headers:{'content-type':'application/octet-stream','content-length':String(bytes.length)},body:bytes});
+  assert.equal(response.status,400);
+  const after=await request('GET','/api/companies');
+  assert.equal(after.body.length,1);
+ });
+ await test('Inspección no deja archivos temporales tras validar o rechazar',async()=>{
+  const remaining=fs.readdirSync(dir).filter(f=>f.startsWith('.inspect-'));
+  assert.deepEqual(remaining,[]);
+ });
  await test('Restauración inválida se rechaza sin alterar los datos',async()=>{
   const before=fs.statSync(path.join(dir,'facturacr.sqlite')).size;
   const invalid=Buffer.alloc(1024,0x41);

@@ -481,7 +481,7 @@ function BackupWorkspace({autoBackup,autoConfig,setAutoConfig,backupStatus,busy,
      {autoBackup?.lastError&&<p className="warning">Último error: {autoBackup.lastError}</p>}
    </div>
   </div>
-  <div className="backupAdvanced"><details><summary>Restauración y opciones avanzadas</summary><p>La restauración reemplaza toda la información actual de las empresas. FacturaCR verifica la integridad del archivo y genera una copia previa antes de reemplazar la base.</p><div className="actions"><button type="button" className="danger" disabled={busy} onClick={()=>restoreInput.current?.click()}>Restaurar archivo .sqlite</button><button type="button" className="secondary" disabled={busy} onClick={refreshAutoBackup}>Actualizar historial</button></div><input ref={restoreInput} type="file" accept=".sqlite" style={{display:'none'}} onChange={restoreBackup}/></details></div>
+  <div className="backupAdvanced"><details><summary>Restauración y opciones avanzadas</summary><p>Antes de restaurar, FacturaCR inspecciona el respaldo y muestra cuántas empresas, clientes, productos, ventas y proformas contiene. Solo tras tu confirmación reemplaza la información actual y crea una copia previa.</p><div className="actions"><button type="button" className="danger" disabled={busy} onClick={()=>restoreInput.current?.click()}>Restaurar archivo .sqlite</button><button type="button" className="secondary" disabled={busy} onClick={refreshAutoBackup}>Actualizar historial</button></div><input ref={restoreInput} type="file" accept=".sqlite" style={{display:'none'}} onChange={restoreBackup}/></details></div>
   <p className="backupFooterInfo">ⓘ Los respaldos automáticos solo se ejecutan con FacturaCR abierto. Si el programa estuvo cerrado, comprueba los respaldos pendientes cuando se vuelva a abrir. Mantén también una copia en un disco externo.</p>
  </section>;
 }
@@ -524,8 +524,19 @@ function App(){
  const restoreBackup=async(event)=>{
   const file=event.target.files?.[0];event.target.value='';if(!file)return;
   if(!file.name.toLowerCase().endsWith('.sqlite')){setMessage('Selecciona un archivo de respaldo .sqlite.');return}
-  
-  askConfirm('Restaurar respaldo',`¿Restaurar «${file.name}»? Se reemplazarán los datos de TODAS las empresas y se creará una copia previa. Esta operación es delicada.`,()=>askConfirm('Confirmación final',`Última confirmación: reemplazar la información actual con «${file.name}».`,()=>performRestore(file),true),true);
+  if(backupBusy){setMessage('Ya se está procesando un respaldo.');return}
+  setBackupBusy(true);setMessage('Inspeccionando el respaldo antes de solicitar confirmación...');
+  try{
+   const response=await fetch('/api/backups/inspect',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:file});
+   const type=response.headers.get('content-type')||'';
+   if(!type.includes('application/json'))throw Error(`El servidor no devolvió una respuesta JSON (HTTP ${response.status}).`);
+   const result=await response.json();if(!response.ok||!result.compatible)throw Error(result.error||'El respaldo no es compatible.');
+   const summary=result.backup,existing=result.current;
+   const names=Array.isArray(summary.companyNames)&&summary.companyNames.length?`\nEmpresas en el archivo: ${summary.companyNames.join(', ')}${summary.companies>summary.companyNames.length?'…':''}`:'';
+   const details=`Archivo: ${file.name}\n\nRESPALDO: ${summary.companies} empresa(s), ${summary.clients} cliente(s), ${summary.products} artículo(s), ${summary.sales} venta(s), ${summary.quotations} proforma(s).${names}\n\nDATOS ACTUALES: ${existing.companies} empresa(s), ${existing.clients} cliente(s), ${existing.products} artículo(s), ${existing.sales} venta(s), ${existing.quotations} proforma(s).\n\nSe REEMPLAZARÁ la información de TODAS las empresas. Se guardará una copia previa.`;
+   setMessage('Respaldo íntegro y compatible. Revisa los datos antes de confirmar la restauración.');
+   askConfirm('Inspección de respaldo completada',details,()=>askConfirm('Confirmación final de restauración',`¿Confirmas REEMPLAZAR TODA la información actual con «${file.name}»? No se combinarán los datos.`,()=>performRestore(file),true),true);
+  }catch(err){setMessage('Restauración cancelada: '+err.message)}finally{setBackupBusy(false)}
  };
  const performRestore=async(file)=>{
   setBackupBusy(true);setMessage('Verificando respaldo y protegiendo los datos actuales...');

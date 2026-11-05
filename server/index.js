@@ -309,6 +309,44 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.json({databaseBytes:dbBytes,walBytes:existsSync(wal)?statSync(wal).size:0,freeBytes:Number(fs.bavail)*Number(fs.bsize),totalBytes:Number(fs.blocks)*Number(fs.bsize)});
     } catch(err){res.status(500).json({error:'No se pudo consultar el espacio de almacenamiento.'})}
   });
+  // Inspección previa: NO reemplaza datos ni modifica la base activa.
+  // El respaldo se recibe en un temporal, se comprueba y se elimina siempre.
+  app.post('/api/backups/inspect',async(req,res)=>{
+    if(!String(req.headers['content-type']||'').startsWith('application/octet-stream'))
+      return res.status(415).json({error:'Selecciona un archivo SQLite válido.'});
+    const declared=Number(req.headers['content-length']);
+    if(!Number.isSafeInteger(declared)||declared<512)
+      return res.status(400).json({error:'No se pudo determinar el tamaño del respaldo.'});
+    const fs=statfsSync(dataDir);
+    const free=Number(fs.bavail)*Number(fs.bsize);
+    if(free<declared+20*1024*1024)
+      return res.status(507).json({error:'No hay espacio suficiente para inspeccionar el respaldo.'});
+    const dir=mkdtempSync(join(dataDir,'.inspect-'));
+    const candidate=join(dir,'candidate.sqlite');
+    try{
+      await pipeline(req,createWriteStream(candidate,{flags:'wx',mode:0o600}));
+      if(statSync(candidate).size!==declared)throw Error('El respaldo recibido está incompleto.');
+      const test=new Database(candidate,{readonly:true,fileMustExist:true});
+      let snapshot;
+      try{
+        if(test.pragma('integrity_check',{simple:true})!=='ok')throw Error('El respaldo no pasó la prueba de integridad.');
+        const tables=new Set(test.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(row=>row.name));
+        for(const table of ['companies','clients','products','inventory_movements']){
+          if(!tables.has(table))throw Error('El archivo no corresponde a una versión compatible de FacturaCR.');
+          const actual=new Set(test.prepare(`PRAGMA table_info(${table})`).all().map(col=>col.name));
+          const expected=new Set(db.prepare(`PRAGMA table_info(${table})`).all().map(col=>col.name));
+          if([...actual].some(col=>!expected.has(col)))throw Error('El respaldo contiene columnas de una versión más nueva ('+table+'). Actualiza FacturaCR.');
+        }
+        const count=(connection,table)=>tables.has(table)?connection.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n:0;
+        snapshot={companies:count(test,'companies'),clients:count(test,'clients'),products:count(test,'products'),sales:count(test,'sales'),quotations:count(test,'quotations'),companyNames:test.prepare('SELECT legal_name FROM companies ORDER BY id LIMIT 8').all().map(row=>row.legal_name)};
+      }finally{test.close()}
+      const currentCount=(table)=>db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n;
+      return res.json({ok:true,compatible:true,sizeBytes:declared,backup:snapshot,current:{companies:currentCount('companies'),clients:currentCount('clients'),products:currentCount('products'),sales:currentCount('sales'),quotations:currentCount('quotations')}});
+    }catch(err){
+      console.warn('Inspección de respaldo rechazada:',err.message);
+      if(!res.headersSent)return res.status(400).json({error:'No se pudo inspeccionar el respaldo: '+err.message});
+    }finally{await cleanTempDir(dir)}
+  });
   // Recibir restauraciones en disco, por streaming, sin límite fijo de 100/512 MB.
   // Se conserva un margen de espacio libre para la copia previa y la restauración.
   app.post('/api/backups/restore',async(req,res)=>{

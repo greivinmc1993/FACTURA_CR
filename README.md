@@ -1,3 +1,7 @@
+## FacturaCR v0.6.37 — Inspección segura antes de restaurar
+
+Al seleccionar un archivo `.sqlite` en Respaldos, la aplicación verifica su integridad y muestra una comparación de registros del respaldo frente a la base activa. Se conserva la doble confirmación y la copia previa. La inspección no modifica las empresas actuales. Consulta `NOTAS_VERSION_0.6.37.md`.
+
 ## FacturaCR v0.6.27 — Precio final con IVA incluido
 
 Se corrigió el redondeo al registrar ventas con productos cuyo precio incluye IVA. Antes, un artículo con precio final ₡700 e IVA 13% podía terminar con total ₡699 porque la base y el IVA se redondeaban por separado.
@@ -28,7 +32,7 @@ La información continúa almacenada en la base SQLite habitual; no reemplaces n
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.9.2-blue" alt="Versión 0.6.9.2" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.37-blue" alt="Versión 0.6.9.2" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>

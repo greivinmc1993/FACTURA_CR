@@ -573,3 +573,6 @@ button.posClientChangeButton{font-size:12px;flex-shrink:0;padding:9px 12px}
 .posCartTable tbody tr:last-child td:first-child{border-bottom-left-radius:17px}
 .posCartTable tbody tr:last-child td:last-child{border-bottom-right-radius:17px}
 @media(max-width:760px){.posCartTable{min-width:0}.posCartTableWrap{max-height:none;overflow:visible}}
+
+/* v0.6.37: conservar saltos de línea en resumen de inspección de respaldo */
+.dialogCard #dialog-description{white-space:pre-line}

@@ -354,3 +354,19 @@ node tests/qa-estatica.cjs
 Con **Node.js 22+**, ejecuta `npm test` en la raíz del proyecto. Este comando corre los cálculos, las validaciones estáticas y una integración con **SQLite temporal**, sin usar tu base de datos. Los adaptadores de `tests/qa-adapters/` son **solo para pruebas**, no se emplean en la aplicación.
 
 Revisa `INFORME_QA_v0.6.31.md` para conocer resultados, cobertura y límites. La compilación visual requiere `npm ci` y `npm run build`. Existe un workflow en `.github/workflows/qa.yml` para GitHub Actions cuando esté habilitado en el repositorio.
+
+
+## QA Windows y generador de instalador (v0.6.32)
+
+El workflow `.github/workflows/windows-installer.yml` se ejecuta al subir cambios a `main`, en pull requests dirigidas a `main`, o manualmente desde **GitHub → Actions → QA Windows e instalador → Run workflow**. Ejecuta el QA existente, prueba el servidor con Express y better-sqlite3 reales, compila React/Vite, genera el `.exe` NSIS y adjunta el instalador al run durante 7 días. Descarga desde la sección **Artifacts** al finalizar. El instalador no está firmado y no se valida su apertura interactiva en Windows.
+
+Comandos locales en Windows después de `npm ci`:
+
+```powershell
+npm test
+npm run qa:real-server
+npm run qa:full
+npm run dist:win
+```
+
+`npm test` se mantiene independiente de dependencias nativas en el adaptador de integración. `npm run qa:real-server` requiere instalar dependencias reales. `npm run qa:full` añade ambas y la compilación. Las bases de prueba se crean y eliminan en el directorio temporal del sistema; no se usan datos reales de `%APPDATA%`.

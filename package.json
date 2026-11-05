@@ -1,7 +1,7 @@
 {
   "name": "facturacr-desktop",
   "private": true,
-  "version": "0.6.31",
+  "version": "0.6.32",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm:server\" \"npm:client\"",
@@ -16,7 +16,9 @@
     "qa:static": "node tests/qa-estatica.cjs",
     "qa:integration": "node --no-warnings tests/qa-integracion-local.cjs",
     "qa:syntax": "node --check server/index.js && node --check server/xlsx.js && node --check electron/main.cjs && node --check electron/preload.cjs",
-    "test": "npm run qa:unit && npm run qa:static && npm run qa:integration && npm run qa:syntax"
+    "test": "npm run qa:unit && npm run qa:static && npm run qa:integration && npm run qa:syntax",
+    "qa:real-server": "node tests/qa-servidor-real.cjs",
+    "qa:full": "npm test && npm run qa:real-server && npm run build"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",

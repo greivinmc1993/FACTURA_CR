@@ -1,0 +1,55 @@
+name: QA Windows e instalador
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-package:
+    name: Windows Node 22 · QA nativo · NSIS
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      CI: 'true'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+      - name: Configurar Node.js y caché npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependencias desde lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Ejecutar regresión de cálculos e integración SQLite
+        run: npm test
+      - name: Probar servidor HTTP con Express y SQLite nativos
+        run: npm run qa:real-server
+      - name: Compilar interfaz React/Vite
+        run: npm run build
+      - name: Crear instalador NSIS Windows sin publicar
+        run: npx electron-builder --win nsis --publish never
+      - name: Verificar instalador y registrar SHA256
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem -Path release -Filter '*.exe' -File -Recurse)
+          if ($files.Count -eq 0) { throw 'No se generó un instalador .exe en release/' }
+          $files | ForEach-Object {
+            Write-Host "Instalador: $($_.FullName) ($($_.Length) bytes)"
+            Get-FileHash $_.FullName -Algorithm SHA256 | Format-List
+          }
+      - name: Guardar instalador como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: FacturaCR-Windows-NSIS-${{ github.run_number }}
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 7

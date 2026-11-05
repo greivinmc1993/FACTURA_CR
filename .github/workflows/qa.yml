@@ -19,6 +19,8 @@ jobs:
         run: npm ci --no-audit --no-fund
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      - name: Comprobar fixture version anterior
+        run: node -e "require('node:fs').accessSync('tests/fixtures/FacturaCR_v0.6.34_baseline.zip')"
       - name: Cálculos, SQLite temporal, validaciones y sintaxis
         run: npm test
       - name: Compilar React/Vite

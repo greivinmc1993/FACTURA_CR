@@ -29,6 +29,8 @@ jobs:
           cache: npm
       - name: Instalar dependencias desde lockfile
         run: npm ci --no-audit --no-fund
+      - name: Comprobar fixture version anterior
+        run: node -e "require('node:fs').accessSync('tests/fixtures/FacturaCR_v0.6.34_baseline.zip')"
       - name: Ejecutar regresión de cálculos e integración SQLite
         run: npm test
       - name: Probar servidor HTTP con Express y SQLite nativos

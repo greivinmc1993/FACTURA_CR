@@ -370,3 +370,25 @@ npm run dist:win
 ```
 
 `npm test` se mantiene independiente de dependencias nativas en el adaptador de integración. `npm run qa:real-server` requiere instalar dependencias reales. `npm run qa:full` añade ambas y la compilación. Las bases de prueba se crean y eliminan en el directorio temporal del sistema; no se usan datos reales de `%APPDATA%`.
+
+
+## QA del ejecutable Windows empaquetado (v0.6.33)
+
+Además de las pruebas anteriores, el workflow `QA Windows e instalador` ahora ejecuta `npm run qa:packaged` después de empaquetar con electron-builder. Esta prueba **abre el ejecutable real** desde `release/win-unpacked/FacturaCR.exe`, con un directorio SQLite temporal exclusivo. Verifica que el servidor local responde, que React muestra la navegación y que los puentes seguros de Electron (impresión, PDF y respaldos) están disponibles. Al terminar, cierra la aplicación, elimina los datos de prueba y guarda una captura de pantalla y un resultado JSON como evidencias del workflow.
+
+```powershell
+npm ci
+npm test
+npm run build
+npx electron-builder --win nsis --publish never
+npm run qa:packaged
+```
+
+En GitHub puedes ver y descargar la evidencia bajo `FacturaCR-Electron-Smoke-N` en la ejecución del workflow. Si falla el arranque real, falla el job de Windows aunque se haya creado el instalador. La prueba no instala ni desinstala Windows, no valida impresoras físicas ni sustituye la restauración de una base de respaldo real en un equipo de prueba.
+
+
+## QA de instalación y conservación de datos (v0.6.34)
+
+El workflow de Windows incorpora una prueba **adicional** con un NSIS instalado de verdad sobre una carpeta temporal de un runner desechable: abre la aplicación, inserta una empresa de prueba en SQLite, reinstala el mismo paquete, vuelve a abrirlo, verifica los datos y comprueba que siguen presentes tras desinstalar. Publica evidencia JSON y capturas en **Actions → Artifacts**.
+
+Esta prueba se ejecuta solo en GitHub Actions Windows y no debe hacerse manualmente en una computadora con FacturaCR instalado. **No prueba aún una actualización entre dos versiones distintas** ni reemplaza la validación manual de Windows o restauración de respaldos. `npm test` sigue ejecutando las 39 verificaciones locales sin instalar nada.

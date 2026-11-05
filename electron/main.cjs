@@ -4,6 +4,64 @@ const path = require('node:path');
 let server;
 let mainWindow;
 const dev = process.argv.includes('--dev');
+// QA opcional: el ejecutable empaquetado usa datos aislados y genera una prueba de arranque.
+// No se activa en el uso normal del programa.
+const qaSmoke = process.argv.includes('--qa-smoke');
+const qaArg = name => process.argv.find(arg => arg.startsWith(name+'='))?.slice(name.length+1);
+const qaResultFile = qaSmoke ? qaArg('--qa-result') : null;
+const qaDataDir = qaSmoke ? qaArg('--qa-data-dir') : null;
+if(qaSmoke){
+  if(!qaResultFile || !qaDataDir || !path.isAbsolute(qaResultFile) || !path.isAbsolute(qaDataDir)){
+    console.error('QA empaquetado requiere --qa-result y --qa-data-dir absolutos');
+    process.exit(2);
+  }
+  app.setPath('userData',qaDataDir);
+}
+let qaErrors=[];
+async function writeSmokeResult(result){
+ if(!qaSmoke)return;
+ try{
+  await fs.mkdir(path.dirname(qaResultFile),{recursive:true});
+  await fs.writeFile(qaResultFile,JSON.stringify({...result,version:app.getVersion(),errors:qaErrors},null,2));
+ }catch(error){console.error('No se pudo guardar evidencia QA:',error)}
+}
+async function runPackagedSmoke(){
+ const maxAttempts=30;
+ let dom;
+ for(let attempt=0;attempt<maxAttempts;attempt++){
+  dom=await mainWindow.webContents.executeJavaScript(`(() => {
+    const root=document.getElementById('root');
+    const text=(root?.innerText||'').trim();
+    return {
+      title: document.title,
+      rootPresent:!!root,
+      visibleCharacters:text.length,
+      hasBrand: text.includes('Factura') || text.includes('CR'),
+      navButtons:document.querySelectorAll('aside nav button').length,
+      hasCompanyNavigation:Array.from(document.querySelectorAll('aside nav button')).some(b=>b.innerText.includes('Empresas')),
+      preloadPrinter:typeof window.facturacrPrinter?.list==='function',
+      preloadReports:typeof window.facturacrReports?.savePdf==='function',
+      preloadBackups:typeof window.facturacrBackups?.openFolder==='function'
+    };
+  })()`,true);
+  if(dom.rootPresent&&dom.visibleCharacters>100&&dom.navButtons>=4&&dom.hasCompanyNavigation)break;
+  await new Promise(resolve=>setTimeout(resolve,300));
+ }
+ if(!dom?.rootPresent||dom.visibleCharacters<=100||dom.navButtons<4||!dom.hasCompanyNavigation||!dom.preloadPrinter||!dom.preloadReports||!dom.preloadBackups){
+   throw Error('La interfaz empaquetada no está lista o el preload no funciona: '+JSON.stringify(dom));
+ }
+ const health=await mainWindow.webContents.executeJavaScript(`fetch('/api/health').then(async r => ({status:r.status,body:await r.json()}))`,true);
+ if(health.status!==200||health.body?.ok!==true||health.body.version!==app.getVersion()){
+   throw Error('Servidor interno no respondió correctamente: '+JSON.stringify(health));
+ }
+ const shot=qaArg('--qa-screenshot');
+ if(shot&&path.isAbsolute(shot)){
+   await fs.mkdir(path.dirname(shot),{recursive:true});
+   await fs.writeFile(shot,(await mainWindow.webContents.capturePage()).toPNG());
+ }
+ return {success:true,dom,health:health.body,screenshot:shot||null};
+}
+
 ipcMain.handle('facturacr:list-printers',async event=>{if(event.sender!==mainWindow?.webContents)throw Error('Ventana no autorizada');return mainWindow.webContents.getPrintersAsync()});
 ipcMain.handle('facturacr:print-ticket',async(event,html,settings={})=>{
  if(event.sender!==mainWindow?.webContents)return {success:false,error:'Ventana no autorizada'};
@@ -58,13 +116,28 @@ app.whenReady().then(async () => {
     mainWindow = new BrowserWindow({width:1180,height:760,minWidth:850,minHeight:580,
       title:'FacturaCR', icon:path.join(__dirname,'../build/icon.png'),
       webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true,preload:path.join(__dirname,'preload.cjs')}});
+    if(qaSmoke){
+      mainWindow.webContents.on('render-process-gone',(_event,details)=>qaErrors.push('Renderer cerrado: '+details.reason));
+      mainWindow.webContents.on('console-message',(_event,details)=>{
+        if(details.level==='error'||details.level===3) qaErrors.push(String(details.message).slice(0,500));
+      });
+    }
     mainWindow.webContents.setWindowOpenHandler(()=>({action:'deny'}));
     mainWindow.webContents.on('will-navigate',(event,url)=>{
       const allowed = dev ? 'http://127.0.0.1:5173/' : `http://127.0.0.1:${server.port}/`;
       if (!url.startsWith(allowed)) event.preventDefault();
     });
     await mainWindow.loadURL(dev?'http://127.0.0.1:5173':`http://127.0.0.1:${server.port}`);
-  } catch(err) { console.error('No se pudo iniciar FacturaCR:',err); app.quit(); }
+    if(qaSmoke){
+      const result=await runPackagedSmoke();
+      await writeSmokeResult(result);
+      app.quit();
+    }
+  } catch(err) {
+    console.error('No se pudo iniciar FacturaCR:',err);
+    if(qaSmoke){await writeSmokeResult({success:false,error:String(err.stack||err)});process.exitCode=1}
+    app.quit();
+  }
 });
 app.on('window-all-closed',()=>app.quit());
 app.on('before-quit',()=>{if(server)server.close().catch(console.error);});

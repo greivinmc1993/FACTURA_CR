@@ -37,6 +37,18 @@ jobs:
         run: npm run build
       - name: Crear instalador NSIS Windows sin publicar
         run: npx electron-builder --win nsis --publish never
+      - name: Arrancar ejecutable empaquetado y verificar interfaz
+        run: npm run qa:packaged
+      - name: Instalar, reinstalar y desinstalar sin perder datos SQLite
+        run: npm run qa:install-upgrade
+      - name: Guardar evidencia del arranque de Electron
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: FacturaCR-Electron-Smoke-${{ github.run_number }}
+          path: release/qa-evidence/*
+          if-no-files-found: warn
+          retention-days: 7
       - name: Verificar instalador y registrar SHA256
         shell: pwsh
         run: |

@@ -658,3 +658,37 @@ button.posClientChangeButton{font-size:12px;flex-shrink:0;padding:9px 12px}
 .bizDashMonthList strong{text-align:right;color:#126957;font-variant-numeric:tabular-nums}.bizDashMonthList small{font-size:.78rem;color:#657f82}
 .bizDashContext{display:grid;gap:12px}.bizDashContext p{margin:0;background:#f6f9fb;border:1px solid #e2ebf0;padding:14px;border-radius:11px;line-height:1.55;color:#486370;font-size:.87rem}
 @media(max-width:600px){.bizDashMonthList>div{grid-template-columns:1fr auto}.bizDashMonthList small{grid-column:1/-1}.bizDashMonthList strong{text-align:right}}
+
+/* FacturaCR v0.6.44: tabla de rentabilidad de productos y cobertura histórica */
+.bizDashProductProfitSection{min-width:0}
+.bizDashProfitTableWrap{width:100%;overflow-x:auto;border:1px solid #dbe8e4;border-radius:13px}
+.bizDashProfitTable{width:100%;border-collapse:collapse;min-width:820px;text-align:left}
+.bizDashProfitTable th{background:#eff8f4;color:#264e49;font-size:.82rem;font-weight:700;padding:13px 11px;white-space:nowrap}
+.bizDashProfitTable td{padding:12px 11px;border-top:1px solid #e8efed;font-size:.9rem;vertical-align:middle;font-variant-numeric:tabular-nums}
+.bizDashProfitTable tbody tr:nth-child(even){background:#f8fbfa}
+.bizDashProfitTable td:first-child{max-width:255px;overflow-wrap:anywhere}
+.bizDashProfitTable td small{display:block;color:#687e78;margin-top:4px;font-size:.77rem}
+.bizDashProfitTable .bizDashMissingCost{color:#a3630c}
+.bizDashPositiveMargin{color:#0a6d57}
+.bizDashNegativeMargin{color:#b53a35}
+.bizDashCoveragePartial,.bizDashCoverageFull{display:inline-flex;border-radius:999px;padding:4px 9px;font-size:.8rem;font-weight:700;background:#fff1da;color:#89550b}
+.bizDashCoverageFull{background:#dff3e9;color:#126451}
+@media(max-width:700px){.bizDashProfitTableWrap{margin-inline:0}.bizDashProductProfitSection{overflow:hidden}}
+
+/* Inventario v0.6.45: prioridades de reposición y costes parciales */
+.inventoryReplenishment{margin-top:18px;padding:18px;border:1px solid #cfe4dc;border-radius:15px;background:linear-gradient(180deg,#fbfefd,#f0f8f5)}
+.inventoryReplenishmentHeading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.inventoryReplenishmentHeading h4{margin:0;color:#14594f;font-size:1.2rem}
+.inventoryReplenishmentHeading .hint{margin:7px 0}
+.inventoryReplenishmentTotals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}
+.inventoryReplenishmentTotals>div{padding:14px;display:flex;flex-direction:column;gap:7px;border-radius:12px;background:white;border:1px solid #d9ebe5}
+.inventoryReplenishmentTotals small{color:#53726c}.inventoryReplenishmentTotals strong{font-size:1.3rem;color:#125d52;overflow-wrap:anywhere}
+.inventoryReplenishmentScroll{overflow-x:auto;border:1px solid #dcebe5;border-radius:12px;background:#fff}
+.inventoryReplenishmentScroll table{width:100%;border-collapse:collapse;min-width:680px}
+.inventoryReplenishmentScroll th,.inventoryReplenishmentScroll td{padding:12px;text-align:left;border-bottom:1px solid #e8f0ec}
+.inventoryReplenishmentScroll th{background:#eaf6f1;color:#25534b}
+.inventoryReplenishmentScroll td small{display:block;color:#688078;margin-top:5px}
+.inventoryAlertBadge{display:inline-block;border-radius:999px;padding:5px 9px;font-size:.78rem;font-weight:800;white-space:nowrap}
+.inventoryAlertOut{background:#fce8e8;color:#a32d2d}.inventoryAlertLow{background:#fff3d8;color:#93620c}
+@media(max-width:800px){.inventoryReplenishmentTotals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.inventoryReplenishment{padding:12px}.inventoryReplenishmentTotals{grid-template-columns:1fr}.inventoryReplenishmentHeading .actions{width:100%}.inventoryReplenishmentHeading .actions button{flex:1}}

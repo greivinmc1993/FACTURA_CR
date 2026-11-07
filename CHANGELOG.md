@@ -1,3 +1,20 @@
+## 0.6.45 — Alertas y lista de reposición de inventario
+
+- Vista priorizada por agotados y existencias bajas, separada por empresa.
+- Cantidades sugeridas basadas en mínimos configurados, con una unidad sugerida si un agotado tiene mínimo cero.
+- Estimación parcial de costo de reposición para productos con costo CRC válido; advertencia de costos desconocidos.
+- Exportación CSV segura para Excel, con códigos SKU, unidades, prioridades y costo estimado.
+- Sin compras automáticas, modificaciones de stock ni migraciones de base de datos.
+- Pruebas unitarias del cálculo y contratos del servidor.
+
+## 0.6.44 — Rentabilidad por producto
+
+- Ranking de margen bruto por producto usando costo histórico capturado al registrar la venta.
+- Cobertura explícita de líneas sin costo, porcentaje de margen calculado solo sobre ingresos cubiertos y distinción de pérdidas.
+- Sección visual responsiva y exportación CSV resumen/PDF resumen y detallado.
+- Pruebas SQL de filtros por cliente/empresa y coherencia de reportes.
+- Conserva el instalador NSIS, GitHub Actions, README y CHANGELOG único.
+
 ## 0.6.43 — Comparativas y análisis comercial
 
 - Comparación con el período anterior de igual longitud, respetando empresa y filtros, con crecimiento de ventas y transacciones.

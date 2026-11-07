@@ -1,3 +1,4 @@
+import { buildInventoryAlerts } from './inventory-alerts.js';
 import { registerDashboardRoutes } from './dashboard.js';
 import { makeXlsx } from './xlsx.js';
 import express from 'express';
@@ -718,6 +719,15 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       res.status(result.changes ? 204 : 404).end();
     });
   }
+  // Alertas consolidadas por empresa; no cambia existencias ni crea movimientos.
+  app.get('/api/companies/:companyId/inventory/alerts',(req,res)=>{
+    const companyId=Number(req.params.companyId);
+    if(!Number.isSafeInteger(companyId)||companyId<1||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId))return res.status(404).json({error:'Empresa no encontrada.'});
+    const products=db.prepare(`SELECT id,product_code,description,unit,kind,stock,min_stock,track_stock,alert_enabled,is_deleted,cost,currency
+      FROM products WHERE company_id=? AND is_deleted=0 AND kind='producto' AND track_stock=1 AND alert_enabled=1
+      AND stock<=min_stock ORDER BY stock,description COLLATE NOCASE`).all(companyId);
+    res.json(buildInventoryAlerts(products));
+  });
   // Movimientos: la API calcula el saldo dentro de una transacción SQLite.
   app.get('/api/companies/:companyId/inventory/movements',(req,res)=>{
     const companyId=Number(req.params.companyId), productId=Number(req.query.productId);

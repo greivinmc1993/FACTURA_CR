@@ -1,1 +1,0 @@
-Se reparo index.html, que estaba vacio. Ejecutar npm install, npm run build y npm run dist:win. Este ZIP contiene fuente, NO instalador. No se ha probado instalador Windows.

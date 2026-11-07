@@ -1,5 +1,5 @@
 'use strict';
-// Contratos de seguridad para el análisis comercial v0.6.43.
+// Contratos de seguridad para el análisis comercial v0.6.44.
 const fs=require('node:fs');const path=require('node:path');const assert=require('node:assert/strict');
 const root=path.join(__dirname,'..');
 const backend=fs.readFileSync(path.join(root,'server','dashboard.js'),'utf8');

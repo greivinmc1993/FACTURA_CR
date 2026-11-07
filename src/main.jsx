@@ -513,6 +513,7 @@ function App(){
  const [geoCantons,setGeoCantons]=useState({}),[geoDistricts,setGeoDistricts]=useState({}),[geoError,setGeoError]=useState('');
  const [companyForm,setCompanyForm]=useState({legal_name:'',identification:'',trade_name:'',phone:'',email:'',address:'',website:'',social:'',avatar_color:COMPANY_COLORS[0]}),[items,setItems]=useState([]);
  const [movementProduct,setMovementProduct]=useState(null),[movements,setMovements]=useState([]),[moveForm,setMoveForm]=useState({movement_type:'entrada',quantity:'1',reason:'Compra',notes:''}),[form,setForm]=useState(blankClient),[editing,setEditing]=useState(null),[search,setSearch]=useState(''),[message,setMessage]=useState('');
+ const [inventoryAlerts,setInventoryAlerts]=useState(null),[alertsBusy,setAlertsBusy]=useState(false);
  const [stockFilter,setStockFilter]=useState('all'),[movementTypeFilter,setMovementTypeFilter]=useState('all'),[movementFrom,setMovementFrom]=useState(''),[movementTo,setMovementTo]=useState('');
  const sortStorageKey=`facturacr_sort_${selected??'none'}_${tab}`;
  const [sortBy,setSortBy]=useState('az');
@@ -662,16 +663,34 @@ function App(){
     const desired=prev??(saved===null?null:Number(saved));
     return result.some(c=>c.id===desired)?desired:result[0]?.id??null;
    });}catch(e){setMessage(e.message)}};
+ const refreshInventoryAlerts=async()=>{
+  if(!selected || tab!=='products'){setInventoryAlerts(null);return;}
+  setAlertsBusy(true);
+  try{setInventoryAlerts(await api(`/api/companies/${selected}/inventory/alerts`));}
+  catch(err){setInventoryAlerts(null);setMessage('No se pudieron consultar las alertas de inventario: '+err.message);}
+  finally{setAlertsBusy(false);}
+ };
+ const downloadInventoryAlerts=()=>{
+  if(!inventoryAlerts){setMessage('Actualiza las alertas antes de exportar.');return;}
+  const clean=v=>{const str=String(v??'');return /^[\s]*[=+@\-\t\r]/.test(str)?"'"+str:str};
+  const cell=v=>'"'+clean(v).replace(/"/g,'""')+'"';
+  const rows=[['Código / SKU','Producto','Estado','Existencias','Mínimo','Unidades sugeridas','Unidad','Costo estimado (CRC)','Costo registrado'],
+    ...inventoryAlerts.rows.map(r=>[r.code,r.description,r.status,r.stock,r.minimum,r.suggested,r.unit,r.estimatedCostCRC??'',r.costKnown?'Sí':'No'])];
+  const csv='\uFEFFsep=;\r\n'+rows.map(row=>row.map(cell).join(';')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const a=document.createElement('a');
+  a.href=url;a.download=`FacturaCR_reposicion_empresa_${selected}.csv`;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+ };
  const refreshItems=async()=>{
   if(!selected||!['clients','products'].includes(tab)){setItems([]);return;}
-  try{const result=await api(endpoint);if(!Array.isArray(result))throw Error('El servidor devolvió un formato inesperado para el listado.');setItems(result)}
+  try{const result=await api(endpoint);if(!Array.isArray(result))throw Error('El servidor devolvió un formato inesperado para el listado.');setItems(result);if(tab==='products')void refreshInventoryAlerts()}
   catch(e){setItems([]);setMessage(e.message)}
  };
  useEffect(()=>{refreshCompanies()},[]);
  useEffect(()=>{if(selected!==null&&companies.some(c=>c.id===selected)){
   try{localStorage.setItem(ACTIVE_COMPANY_KEY,String(selected))}catch{}
  }},[selected,companies]);
- useEffect(()=>{setItems([]);setSearch('');setEditing(null);setForm(tab==='products'?blankProduct:blankClient);setMessage('');setMovementProduct(null);setMovements([]);refreshItems()},[selected,tab]);
+ useEffect(()=>{setInventoryAlerts(null);setItems([]);setSearch('');setEditing(null);setForm(tab==='products'?blankProduct:blankClient);setMessage('');setMovementProduct(null);setMovements([]);refreshItems();refreshInventoryAlerts()},[selected,tab]);
  const getGeo=async(path,setter)=>{
    const key='facturacr_geo_'+path;
    const cached=localStorage.getItem(key);
@@ -823,7 +842,14 @@ function App(){
  <button type="button" className={'inventoryFilterCard inventoryDanger '+(stockFilter==='out'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('out')}><span>Agotados</span><strong>{stockOut.length}</strong></button>
  <button type="button" className={'inventoryFilterCard inventoryWarning '+(stockFilter==='low'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('low')}><span>Stock bajo</span><strong>{stockLow.length}</strong></button>
  <button type="button" className={'inventoryFilterCard '+(stockFilter==='normal'?'inventoryFilterActive':'')} onClick={()=>setStockFilter('normal')}><span>Disponibles</span><strong>{stockNormal.length}</strong></button>
- </div>{stockFilter!=='all'&&<div className="actions"><span className="hint">Filtro activo: {stockFilter==='out'?'agotados':stockFilter==='low'?'stock bajo':'disponibles'}</span><button type="button" className="secondary" onClick={()=>setStockFilter('all')}>Quitar filtro</button></div>}</div>}<Field title="Buscar"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={tab==='clients'?'Nombre e identificación':'Producto, código y SKU'}/></Field><Field title="Ordenar por"><select value={sortBy} onChange={e=>changeSort(e.target.value)}>
+ </div>{stockFilter!=='all'&&<div className="actions"><span className="hint">Filtro activo: {stockFilter==='out'?'agotados':stockFilter==='low'?'stock bajo':'disponibles'}</span><button type="button" className="secondary" onClick={()=>setStockFilter('all')}>Quitar filtro</button></div>}
+ <section className="inventoryReplenishment" aria-label="Lista de reposición">
+ <div className="inventoryReplenishmentHeading"><div><h4>Lista de reposición</h4><p className="hint">Prioriza agotados y artículos que llegaron al mínimo. Las cantidades son sugerencias, no compras automáticas.</p></div>
+ <div className="actions"><button type="button" className="secondary" disabled={alertsBusy} onClick={refreshInventoryAlerts}>{alertsBusy?'Consultando…':'Actualizar alertas'}</button><button type="button" className="secondary" disabled={!inventoryAlerts?.rows?.length||alertsBusy} onClick={downloadInventoryAlerts}>Exportar reposición CSV</button></div></div>
+ {inventoryAlerts&&<><div className="inventoryReplenishmentTotals"><div><small>Artículos por reponer</small><strong>{inventoryAlerts.summary.total}</strong></div><div><small>Agotados</small><strong>{inventoryAlerts.summary.out}</strong></div><div><small>Unidades sugeridas</small><strong>{inventoryAlerts.summary.suggestedUnits}</strong></div><div><small>Costo estimado conocido</small><strong>₡{Number(inventoryAlerts.summary.estimatedCostCRC).toLocaleString('es-CR',{maximumFractionDigits:2})}</strong></div></div>
+ {inventoryAlerts.summary.missingCost>0&&<p className="hint">{inventoryAlerts.summary.missingCost} artículo(s) sin costo CRC válido; el costo total mostrado es parcial.</p>}
+ {inventoryAlerts.rows.length===0?<p className="hint">No hay artículos con alertas habilitadas que requieran reposición.</p>:<div className="inventoryReplenishmentScroll"><table><thead><tr><th>Prioridad</th><th>Artículo</th><th>Existencias</th><th>Mínimo</th><th>Sugerido</th><th>Costo estimado</th></tr></thead><tbody>{inventoryAlerts.rows.map(r=><tr key={r.id}><td><span className={'inventoryAlertBadge '+(r.status==='agotado'?'inventoryAlertOut':'inventoryAlertLow')}>{r.status==='agotado'?'Agotado':'Stock bajo'}</span></td><td><strong>{r.description}</strong><small>{r.code||'Sin SKU'}</small></td><td>{r.stock}</td><td>{r.minimum}</td><td><strong>{r.suggested} {r.unit}</strong></td><td>{r.costKnown?'₡'+Number(r.estimatedCostCRC).toLocaleString('es-CR',{maximumFractionDigits:2}):'Sin costo válido'}</td></tr>)}</tbody></table></div>}</>}
+ </section></div>}<Field title="Buscar"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder={tab==='clients'?'Nombre e identificación':'Producto, código y SKU'}/></Field><Field title="Ordenar por"><select value={sortBy} onChange={e=>changeSort(e.target.value)}>
  <option value="az">Nombre A–Z</option><option value="za">Nombre Z–A</option>
  <option value="newest">Más recientes</option><option value="oldest">Más antiguos</option>
  {tab==='clients'?<option value="identification">Número de identificación</option>:<>

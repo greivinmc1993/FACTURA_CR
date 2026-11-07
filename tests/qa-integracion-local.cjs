@@ -19,6 +19,7 @@ serverText=serverText.replace("import express from 'express'","import express fr
  .replace("import Database from 'better-sqlite3'","import Database from './sqlite.mjs'");
 fs.writeFileSync(path.join(staging,'index.mjs'),serverText);
 fs.copyFileSync(path.join(root,'server','dashboard.js'),path.join(staging,'dashboard.js'));
+fs.copyFileSync(path.join(root,'server','inventory-alerts.js'),path.join(staging,'inventory-alerts.js'));
 for(const name of ['express.mjs','sqlite.mjs'])fs.copyFileSync(path.join(__dirname,'qa-adapters',name),path.join(staging,name));
 fs.copyFileSync(path.join(root,'server','xlsx.js'),path.join(staging,'xlsx.js'));
 // El módulo ESM se interpreta como ESM incluso si el proyecto padre usa CommonJS.
@@ -49,7 +50,7 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.43')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.45')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -70,6 +71,13 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   await check('Producto IVA incluido ₡700 con existencias',async()=>{
    const r=await call('POST',`/api/companies/${a}/products`,{kind:'producto',description:'Producto QA',cabys:'1234567890123',product_code:'SKU700',price:'700',cost:'300',currency:'CRC',tax_code:'08',price_includes_tax:'1',unit:'Unid',stock:'10',min_stock:'2',track_stock:'1',alert_enabled:'1'});
    assert.equal(r.status,201,JSON.stringify(r.body));prodId=r.body.id;
+  });
+  await check('Alertas de inventario por empresa no mezclan artículos y validan compañía',async()=>{
+   const aRes=await call('GET',`/api/companies/${a}/inventory/alerts`);
+   assert.equal(aRes.status,200);assert.equal(aRes.body.summary.total,0);
+   const bRes=await call('GET',`/api/companies/${b}/inventory/alerts`);
+   assert.equal(bRes.status,200);assert.equal(bRes.body.rows.length,0);
+   const invalid=await call('GET','/api/companies/999999/inventory/alerts');assert.equal(invalid.status,404);
   });
   await check('Contado: ₡619 base + ₡81 IVA = ₡700 y salida de inventario',async()=>{
    const r=await call('POST',`/api/companies/${a}/sales`,{sale_type:'contado',client_id:clientId,discount:0,lines:[{product_id:prodId,quantity:1}],payments:[{method:'SINPE Móvil',amount:700}]});
@@ -182,6 +190,36 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    assert.equal(r.body.profitability.estimated_gross_margin_cents,r.body.profitability.covered_net_sales_cents-r.body.profitability.cost_cents);
    assert.ok(r.body.monthly.length>=1);
    assert.ok(r.body.comparison.from<'2026-01-01');
+  });
+  await check('Rentabilidad por producto respeta cobertura, costos históricos y aislamiento de empresa',async()=>{
+   const range='from=2026-01-01&to=2026-12-31';
+   const r=await call('GET',`/api/companies/${a}/dashboard?${range}`);
+   assert.equal(r.status,200,JSON.stringify(r.body));
+   assert.ok(Array.isArray(r.body.product_margins));
+   const item=r.body.product_margins.find(x=>x.product_id===prodId);
+   assert.ok(item,'Debe existir la línea del producto con costo histórico');
+   assert.equal(item.covered_net_sales_cents-item.historical_cost_cents,item.margin_cents);
+   assert.ok(item.unpriced_lines>=1,'La línea histórica sin costo no debe desaparecer');
+   assert.equal(item.priced_lines+item.unpriced_lines,item.total_lines);
+   assert.equal(item.coverage_pct,Math.round(item.priced_lines*10000/item.total_lines)/100);
+   const other=await call('GET',`/api/companies/${b}/dashboard?${range}`);
+   assert.deepEqual(other.body.product_margins,[],'No deben filtrarse productos de otras empresas');
+   const filtered=await call('GET',`/api/companies/${a}/dashboard?${range}&client=${clientId}`);
+   assert.equal(filtered.status,200);
+   assert.ok(filtered.body.product_margins.every(x=>x.priced_lines+x.unpriced_lines===x.total_lines));
+   const invalid=await call('GET',`/api/companies/${b}/dashboard?${range}&client=${clientId}`);
+   assert.equal(invalid.status,400);
+  });
+  await check('Rentabilidad por producto aparece en CSV y ambos tipos de PDF',async()=>{
+   const q='from=2026-01-01&to=2026-12-31';
+   const csv=await call('GET',`/api/companies/${a}/dashboard/export.csv?${q}&kind=resumen`);
+   assert.equal(csv.status,200);assert.ok(csv.body.includes('Rentabilidad por artículo'));
+   assert.ok(csv.body.includes('Líneas sin costo'));assert.ok(csv.body.includes('Margen cubierto CRC'));
+   for(const kind of ['resumen','detallado']){
+    const html=await call('GET',`/api/companies/${a}/dashboard/export.html?${q}&kind=${kind}`);
+    assert.equal(html.status,200);assert.ok(html.body.includes('Rentabilidad por producto'));
+    assert.ok(html.body.includes('Costo histórico'));
+   }
   });
   await check('Dashboard: método, estado y paginación',async()=>{
    const base=`/api/companies/${a}/dashboard`;

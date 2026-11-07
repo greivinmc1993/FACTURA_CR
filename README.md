@@ -462,16 +462,25 @@ Los PDF se guardan desde la aplicación de escritorio mediante el diálogo de Wi
 **QA:** `npm test` cubre cálculo, contratos, rutas SQLite temporales, aislamiento de empresas, combinaciones de filtros, exportación CSV/PDF, paginación y más de 500 ventas. `npm run qa:real-server` requiere dependencias nativas y se ejecuta en GitHub Actions, junto con la compilación de Vite y las pruebas de Windows. La instalación continúa generándose con `npm run dist:win`.
 
 
-## Dashboard — comparativas y margen bruto (v0.6.43)
+## Dashboard — comparativas y margen bruto (v0.6.45)
 
 El dashboard añade una comparación con el período inmediatamente anterior **de igual cantidad de días**, respetando los filtros de empresa, cliente, condición de venta, método de pago y estado. La variación porcentual solo se calcula cuando el período anterior tiene un importe distinto de cero. Incluye evolución mensual y clientes frecuentes (mínimo dos compras en el intervalo). El CSV resumen y ambos PDF incluyen las comparativas y el análisis de costo. El CSV detallado conserva una fila por venta para facilitar su análisis en Excel.
 
 ### Costo histórico y estimación responsable
 
-Desde la v0.6.43, al registrar una venta, el servidor guarda `sale_lines.unit_cost_cents` (colones, centavos) cuando el artículo posee un costo positivo confiable en CRC. El valor queda fijo para esa venta aunque se modifique el costo en el catálogo. **Las ventas antiguas mantienen `NULL`** en este campo: no es posible deducir su costo original con seguridad. Los productos sin costo positivo registrado también quedan como `NULL`. La migración es aditiva: no borra ni reescribe transacciones anteriores.
+Desde la v0.6.45, al registrar una venta, el servidor guarda `sale_lines.unit_cost_cents` (colones, centavos) cuando el artículo posee un costo positivo confiable en CRC. El valor queda fijo para esa venta aunque se modifique el costo en el catálogo. **Las ventas antiguas mantienen `NULL`** en este campo: no es posible deducir su costo original con seguridad. Los productos sin costo positivo registrado también quedan como `NULL`. La migración es aditiva: no borra ni reescribe transacciones anteriores.
 
 El indicador de **margen bruto estimado parcial** usa únicamente líneas cuyo costo histórico está registrado: base de venta después de descuentos **sin IVA**, menos costo capturado por cantidad. Muestra cantidad de líneas cubiertas y cobertura porcentual. **No equivale a la utilidad neta**, no incluye gastos generales, devoluciones externas, depreciación ni salarios, y no debe interpretarse como rentabilidad de todas las ventas cuando la cobertura es incompleta.
 
 ### QA
 
 Ejecuta `npm test` antes de cada publicación. La suite incluye casos de margen parcial, registro de costo histórico, períodos de igual duración, aislamiento de empresas, exportaciones y el resto de regresiones anteriores. `npm run dist:win` y los workflows de GitHub Actions se mantienen; la compilación real en Windows debe validarse al subir la versión.
+
+
+### v0.6.45 · Rentabilidad por producto
+
+El dashboard agrega ranking de productos por margen bruto cubierto usando únicamente costos históricos registrados en las líneas de venta, con cobertura de líneas, márgenes parciales y porcentajes. El informe CSV resumen y ambos PDF incluyen esta tabla. No se inventan costos para ventas antiguas.
+
+
+### Alertas de inventario v0.6.45
+En Inventario y servicios, la lista de reposición muestra productos agotados o bajo mínimos cuando las alertas están habilitadas. Permite exportar CSV con sugerencias; los costos son estimaciones parciales en CRC y no se registra ninguna compra.

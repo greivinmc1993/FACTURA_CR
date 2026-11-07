@@ -23,7 +23,7 @@ fs.copyFileSync(path.join(root,'server','inventory-alerts.js'),path.join(staging
 fs.copyFileSync(path.join(root,'server','kardex.js'),path.join(staging,'kardex.js'));
 fs.copyFileSync(path.join(root,'server','inventory-valuation.js'),path.join(staging,'inventory-valuation.js'));
 for(const name of ['express.mjs','sqlite.mjs'])fs.copyFileSync(path.join(__dirname,'qa-adapters',name),path.join(staging,name));
-fs.copyFileSync(path.join(root,'server','xlsx.js'),path.join(staging,'xlsx.js'));
+
 fs.copyFileSync(path.join(root,'server','report-format.js'),path.join(staging,'report-format.js'));
 // El módulo ESM se interpreta como ESM incluso si el proyecto padre usa CommonJS.
 fs.writeFileSync(path.join(staging,'package.json'),'{'+'"type":"module"'+'}');
@@ -47,13 +47,13 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   const actualParts=pathname.split('/'),routeParts=route.path.split('/'),params={};
   routeParts.forEach((part,i)=>{if(part.startsWith(':'))params[part.slice(1)]=actualParts[i]});
   let status=200,result,completed=false;
-  const chunks=[];const res={headersSent:false,write(v){chunks.push(String(v));return true},end(){result=chunks.join('');completed=true;return this},status(s){status=s;return this},json(v){result=v;completed=true;return this},setHeader(){},type(){return this},send(v){result=v;completed=true;return this}};
+  const chunks=[];const res={headersSent:false,write(v){chunks.push(Buffer.isBuffer(v)?v:Buffer.from(String(v)));return true},end(){const b=Buffer.concat(chunks);result=b[0]===255&&b[1]===254?b.subarray(2).toString('utf16le'):b.toString('utf8');completed=true;return this},status(s){status=s;return this},json(v){result=v;completed=true;return this},setHeader(){},type(){return this},send(v){result=Buffer.isBuffer(v)&&v[0]===255&&v[1]===254?v.subarray(2).toString('utf16le'):v;completed=true;return this}};
   await route.handler({params,body,headers:{},query:Object.fromEntries(parsedUrl.searchParams),originalUrl:url},res);
   assert.equal(completed,true,`Sin respuesta ${method} ${url}`);
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.50')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.51')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -104,15 +104,11 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    r=await call('GET',`/api/companies/${a}/inventory/kardex?from=2026-02-31`);assert.equal(r.status,400);
    r=await call('GET',`/api/companies/999999/inventory/kardex`);assert.equal(r.status,404);
   });
-  await check('Kardex exporta PDF HTML y Excel verdadero',async()=>{
+  await check('Kardex exporta PDF y rechaza XLSX retirado',async()=>{
    const pdf=await call('GET',`/api/companies/${a}/inventory/kardex/export.html?productId=${prodId}`);
    assert.equal(pdf.status,200);assert.ok(pdf.body.includes('Kardex'));assert.ok(pdf.body.includes('Inventario inicial'));
-   const xlsx=await call('GET',`/api/companies/${a}/inventory/kardex/export.xlsx?productId=${prodId}`);
-   assert.equal(xlsx.status,200);assert.ok(Buffer.isBuffer(xlsx.body));assert.equal(xlsx.body.subarray(0,2).toString(),'PK');
-  });
-  await check('Valoración exporta XLSX con encabezados UTF-8',async()=>{
-   const xlsx=await call('GET',`/api/companies/${a}/inventory/valuation/export.xlsx`);
-   assert.equal(xlsx.status,200);assert.ok(Buffer.isBuffer(xlsx.body));assert.equal(xlsx.body.subarray(0,2).toString(),'PK');
+   assert.ok(!routes.some(r=>r.path.endsWith('/kardex/export.xlsx')));
+   assert.ok(!routes.some(r=>r.path.endsWith('/valuation/export.xlsx')));
   });
   await check('Catálogo y movimientos ofrecen PDF con datos de empresa',async()=>{
    for(const u of [`/api/companies/${a}/products/export.html`,`/api/companies/${a}/inventory/movements/export.html`]){

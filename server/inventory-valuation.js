@@ -1,5 +1,4 @@
-import {csvCell,reportHtml} from './report-format.js';
-import {makeXlsx} from './xlsx.js';
+import {csvCell,csvExcelBuffer,reportHtml} from './report-format.js';
 // Valoración actual a costo de adquisición. Nunca modifica existencias.
 // CRC y USD no se mezclan sin una tasa de cambio comprobable.
 const escHtml = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -59,22 +58,16 @@ export function registerInventoryValuationRoutes(app,db){
  });
  app.get('/api/companies/:companyId/inventory/valuation/export.csv',(req,res)=>{
   const r=run(req,res);if(!r)return;
-  res.setHeader('Content-Type','text/csv; charset=utf-8');
+  res.setHeader('Content-Type','text/csv; charset=utf-16le');
   res.setHeader('Content-Disposition','attachment; filename="FacturaCR_valoracion_inventario.csv"');
-  res.write('\uFEFFsep=;\r\n');
+  res.write(csvExcelBuffer('sep=;\r\n'));
   const header=['Empresa','Identificación','SKU','Producto','Unidad','Existencias','Existencias mínimas','Estado','Moneda del producto','Costo unitario CRC','Valor al costo CRC','¿Costo válido?'];
-  res.write(header.map(escCsv).join(';')+'\r\n');
+  res.write(Buffer.from(header.map(escCsv).join(';')+'\r\n','utf16le'));
   for(const row of r.rows){
-   res.write([r.company.trade_name||r.company.legal_name,r.company.identification,row.sku,row.description,row.unit,row.stock,row.minStock,row.status,row.currency,
-    row.costKnown?row.unitCost.toFixed(2):'',row.valueCents===null?'':(row.valueCents/100).toFixed(2),row.costKnown?'Sí':'No'].map(escCsv).join(';')+'\r\n');
+   res.write(Buffer.from([r.company.trade_name||r.company.legal_name,r.company.identification,row.sku,row.description,row.unit,row.stock,row.minStock,row.status,row.currency,
+    row.costKnown?row.unitCost.toFixed(2):'',row.valueCents===null?'':(row.valueCents/100).toFixed(2),row.costKnown?'Sí':'No'].map(escCsv).join(';')+'\r\n','utf16le'));
   }
   res.end();
- });
- app.get('/api/companies/:companyId/inventory/valuation/export.xlsx',(req,res)=>{
-  const r=run(req,res);if(!r)return;
-  const head=['Empresa','Identificación','SKU','Producto','Unidad','Existencias','Mínimo','Estado','Moneda','Costo unitario CRC','Valor al costo CRC','Costo válido'];
-  const rows=r.rows.map(x=>[r.company.trade_name||r.company.legal_name,r.company.identification,x.sku,x.description,x.unit,x.stock,x.minStock,x.status,x.currency,x.costKnown?x.unitCost:'',x.valueCents===null?'':x.valueCents/100,x.costKnown?'Sí':'No']);
-  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.setHeader('Content-Disposition','attachment; filename="FacturaCR_valoracion_inventario.xlsx"');res.send(makeXlsx('Valoración',head,rows));
  });
  app.get('/api/companies/:companyId/inventory/valuation/export.html',(req,res)=>{
   const r=run(req,res);if(!r)return;

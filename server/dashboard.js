@@ -1,4 +1,4 @@
-import {csvCell as safeCell} from './report-format.js';
+import {csvCell as safeCell,csvExcelBuffer} from './report-format.js';
 // FacturaCR: reportes comerciales por empresa. Solo lectura; nunca modifica ventas ni inventario.
 const cleanHtml = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cash = value => '₡'+(Number(value||0)/100).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -182,8 +182,8 @@ export function registerDashboardRoutes(app,db,saleCompany){
   }
   app.get('/api/companies/:companyId/dashboard/export.csv',route((req,res,f)=>{
     const kind=String(req.query.kind||'resumen');if(!['resumen','detallado'].includes(kind))throw Error('Exportación inválida.');
-    res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition',`attachment; filename="FacturaCR_${kind}_${f.from}_${f.to}.csv"`);
-    res.send(csvReport(f,kind));
+    res.setHeader('Content-Type','text/csv; charset=utf-16le');res.setHeader('Content-Disposition',`attachment; filename="FacturaCR_${kind}_${f.from}_${f.to}.csv"`);
+    res.send(csvExcelBuffer(csvReport(f,kind)));
   }));
   app.get('/api/companies/:companyId/dashboard/export.html',route((req,res,f)=>{
     const kind=String(req.query.kind||'resumen');if(!['resumen','detallado'].includes(kind))throw Error('Reporte inválido.');

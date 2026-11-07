@@ -1,5 +1,4 @@
-import {csvCell,csvDocument,reportHtml} from './report-format.js';
-import {makeXlsx} from './xlsx.js';
+import {csvCell,csvDocument,csvExcelBuffer,reportHtml} from './report-format.js';
 // Kardex global de inventario. Solo lectura; nunca modifica existencias.
 const types=['all','entrada','salida','ajuste'];
 const dateRE=/^\d{4}-\d{2}-\d{2}$/;
@@ -46,21 +45,14 @@ export function registerKardexRoutes(app,db){
  const exportRow=r=>[r.id,r.created_at,r.product_name,r.product_code,r.is_deleted?'Retirado':'Activo',r.movement_type,r.quantity,r.delta,r.stock_before,r.stock_after,r.unit,r.reason,r.notes];
  app.get('/api/companies/:companyId/inventory/kardex/export.csv',(req,res)=>{
   const f=core(req,res);if(!f)return;
-  res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="FacturaCR_kardex.csv"');
-  res.write('\uFEFFsep=;\r\n'+exportColumns.map(h=>csvCell(h)).join(';')+'\r\n');
+  res.setHeader('Content-Type','text/csv; charset=utf-16le');res.setHeader('Content-Disposition','attachment; filename="FacturaCR_kardex.csv"');
+  res.write(csvExcelBuffer('sep=;\r\n'+exportColumns.map(h=>csvCell(h)).join(';')+'\r\n'));
   const stmt=db.prepare(`SELECT ${FIELDS} ${BASE} WHERE ${f.where} AND m.id<? ORDER BY m.id DESC LIMIT 500`);
   let lastId=Number.MAX_SAFE_INTEGER;
   for(;;){const batch=stmt.all(...f.args,lastId);if(!batch.length)break;
-   for(const r of batch){const row=exportRow(r);res.write(row.map((value,i)=>csvCell(value,{identifier:i===3})).join(';')+'\r\n')}
+   for(const r of batch){const row=exportRow(r);res.write(Buffer.from(row.map((value,i)=>csvCell(value,{identifier:i===3})).join(';')+'\r\n','utf16le'))}
    lastId=batch[batch.length-1].id;if(batch.length<500)break;
   }res.end();
- });
- app.get('/api/companies/:companyId/inventory/kardex/export.xlsx',(req,res)=>{
-  const f=core(req,res);if(!f)return;
-  const rows=reportRows(f).map(exportRow);
-  const xlsx=makeXlsx('Kardex',exportColumns,rows);
-  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition','attachment; filename="FacturaCR_kardex.xlsx"');res.send(xlsx);
  });
  app.get('/api/companies/:companyId/inventory/kardex/export.html',(req,res)=>{
   const f=core(req,res);if(!f)return;

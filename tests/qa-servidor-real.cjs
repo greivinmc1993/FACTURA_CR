@@ -172,7 +172,7 @@ async function main(){
   const endpoint='/api/companies/1/dashboard/';
   const query='from=2026-03-01&to=2026-03-31&kind=detallado';
   let response=await fetch(`${base}${endpoint}export.csv?${query}`);
-  assert.equal(response.status,200);const csv=await response.text();
+  assert.equal(response.status,200);const csvBytes=Buffer.from(await response.arrayBuffer());const csv=csvBytes[0]===255&&csvBytes[1]===254?csvBytes.subarray(2).toString('utf16le'):csvBytes.toString('utf8');
   assert.ok(csv.includes('Número venta'));assert.ok(csv.includes('Servicio QA'));
   response=await fetch(`${base}${endpoint}export.html?${query}`);
   assert.equal(response.status,200);const html=await response.text();

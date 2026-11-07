@@ -1,29 +1,15 @@
-## Nuevo en v0.6.50 — Exportaciones uniformes CSV, Excel y PDF
+# FacturaCR v0.6.51 — Exportaciones CSV y PDF
 
-- Kardex: exportaciones **CSV UTF-8 BOM, Excel .xlsx y PDF A4 horizontal** con filtros, trazabilidad y cantidades negativas correctamente numéricas.
-- Catálogo: opciones CSV, Excel .xlsx y PDF. Movimientos: CSV, Excel (endpoint existente) y PDF.
-- Valoración: exportación adicional Excel .xlsx con columnas autoajustadas, junto al CSV y PDF existentes.
-- Créditos: PDF del historial filtrado y CSV existente. Reposición: PDF de alertas junto al CSV.
-- Normalización de codificación y caracteres, texto HTML escapado, encabezados, filtros y métricas en los documentos.
-- Para evitar `########` en Excel, **usa Excel .xlsx**: CSV no guarda anchuras ni tipos de celda; al abrir CSV, Excel decide el ancho automáticamente. El CSV UTF-8 con BOM sí evita caracteres como `ArtÃ­culo`.
-- Se conserva el CSV de catálogo importable. La exportación CSV estándar ahora usa UTF-8 BOM y permite solicitar el legado `?encoding=windows1252`.
-- No modifica registros de SQLite ni operaciones comerciales. Todo PDF se guarda mediante la función local de Electron.
+**Corrección Excel para Windows:** los CSV se descargan con codificación UTF-16 LE y BOM, separador `;`, para que tildes y símbolos se interpreten correctamente al abrir directamente en Excel. Se retiraron todos los botones y endpoints `.xlsx`; se mantienen los PDF existentes.
 
-### Matriz de exportaciones revisadas
+**Nota:** CSV no almacena anchos de columna. Si Excel muestra `########` en una fecha, amplía la columna B (doble clic en su borde derecho). Excel también puede cambiar el formato de los números según la configuración regional.
 
-| Área | CSV | Excel .xlsx | PDF |
-|---|---|---|---|
-| Kardex | Sí | Sí | Sí |
-| Catálogo de artículos | Sí | Sí | Sí |
-| Movimientos de inventario | Sí | Sí | Sí |
-| Valoración de inventario | Sí | Sí | Sí |
-| Alertas de reposición | Sí | — | Sí |
-| Dashboard / análisis comercial | Resumen y detalle | — | Resumen y detalle |
-| Historial de ventas | Todas y filtradas | — | Filtradas |
-| Créditos y abonos | Sí | — | Sí |
-| Proformas | — | — | Sí |
+**Importación:** el catálogo acepta archivos CSV UTF-16 LE, UTF-8 con BOM y Windows-1252 anteriores.
 
-**Importante:** los CSV no conservan anchos ni tipos de columna (limitación del formato). Para consultar un Kardex en Excel sin `########` ni conversiones automáticas, usa **Exportar Excel .xlsx**. El PDF se genera con Electron y requiere validación visual final en Windows. Los datos se exportan desde cada empresa sin alterar el inventario.
+**QA:** ejecuta `npm test`. Genera el instalador con `npm run dist:win` y valida GitHub Actions.
+
+---
+
 
 ## Nuevo en v0.6.49 — Valoración de inventario
 
@@ -83,7 +69,7 @@ La información continúa almacenada en la base SQLite habitual; no reemplaces n
   <p><strong>Punto de venta y gestión comercial de escritorio para Costa Rica</strong></p>
   <p>Empresas · Clientes · Artículos · Inventario · Ventas · Crédito · Respaldos</p>
   <p>
-    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.41-blue" alt="Versión 0.6.41" />
+    <img src="https://img.shields.io/badge/Versi%C3%B3n-0.6.51-blue" alt="Versión 0.6.51" />
     <img src="https://img.shields.io/badge/Estado-En%20pruebas-orange" alt="En pruebas" />
     <img src="https://img.shields.io/badge/Plataforma-Windows-0078D4" alt="Windows" />
   </p>
@@ -456,7 +442,7 @@ En el workflow **QA Windows e instalador**, GitHub construye el instalador anter
 
 Los resultados y capturas quedan en *Actions → Artifacts → FacturaCR-Electron-Smoke-...*, archivo `cross-version-upgrade-report.json`. El instalador nuevo se publica por separado como `FacturaCR-Windows-NSIS-...`.
 
-Este ensayo no se ejecuta contra los datos de un cliente y no equivale a una certificación del instalador en todas las versiones de Windows. Consulta `INFORME_QA_v0.6.35.md` para el alcance y las limitaciones.
+Este ensayo no se ejecuta contra los datos de un cliente y no equivale a una certificación del instalador en todas las versiones de Windows. El alcance de QA y sus limitaciones quedan documentados en el historial de cambios y las pruebas.
 
 
 ## Actualización v0.6.36 — estabilidad en operaciones comerciales

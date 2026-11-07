@@ -1,3 +1,9 @@
+## 0.6.51 — CSV compatible con Excel Windows
+- Exportaciones CSV en UTF-16 LE con BOM, manteniendo el separador regional `;`.
+- Retirada la exportación .xlsx; se conservan CSV y PDF.
+- Importación de catálogo compatible con UTF-16 LE, UTF-8 BOM y Windows-1252 antiguo.
+- Corrección de caracteres acentuados sin modificar valores numéricos ni registros.
+
 ## 0.6.50 — Auditoría y corrección de exportaciones
 - Corrección de codificación UTF-8 con BOM para los CSV y protección de fórmulas sin alterar cantidades negativas.
 - Exportación de Kardex en CSV, XLSX y PDF; PDF de catálogo, movimientos, reposición y créditos; XLSX de valoración.

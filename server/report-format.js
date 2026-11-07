@@ -25,3 +25,11 @@ export function reportHtml({title,company='',subtitle='',headers=[],rows=[],summ
   @page{size:A4 ${landscape?'landscape':'portrait'};margin:12mm}*{box-sizing:border-box}body{font:10px Arial,sans-serif;color:#213447;margin:0}header{border-bottom:3px solid #128677;padding-bottom:12px;margin-bottom:16px}h1{font-size:21px;margin:0 0 7px;color:#11665c}header strong{display:block;font-size:12px}header p{margin:7px 0;color:#556b7a;overflow-wrap:anywhere}.stats{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 15px}.stats>div{flex:1;min-width:145px;padding:11px;background:#eef8f4;border:1px solid #d5e8e0;border-radius:6px}.stats span{display:block;color:#536a72;font-size:9px}.stats b{display:block;font-size:14px;margin-top:5px;color:#125e55}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th{text-align:left;background:#dff1eb;color:#164e46;font-size:9px;padding:7px 5px;overflow-wrap:anywhere}td{border-bottom:1px solid #dce7e5;padding:7px 5px;vertical-align:top;overflow-wrap:anywhere;word-break:break-word}tr{break-inside:avoid;page-break-inside:avoid}tbody tr:nth-child(even){background:#f7fbfa}footer{border-top:1px solid #dce7e5;margin-top:17px;padding-top:8px;color:#617586;font-size:9px}</style></head><body>
   <header><h1>${esc(title)}</h1><strong>${esc(company)}</strong><p>${esc(subtitle)}</p><p>Generado: ${esc(new Date().toLocaleString('es-CR'))}</p></header>${cards}<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table><footer>${esc(note||'Reporte comercial interno de FacturaCR. No constituye un comprobante electrónico de Hacienda.')}</footer></body></html>`;
 }
+
+// CSV de Excel en Windows: BOM UTF-16 LE. Excel reconoce la codificación
+// al abrir con doble clic, también con caracteres acentuados y ₡.
+// El nombre del archivo sigue siendo .csv; los importadores deben detectar BOM.
+export function csvExcelBuffer(text){
+  const content=String(text??'').replace(/^\uFEFF/,'');
+  return Buffer.concat([Buffer.from([0xff,0xfe]),Buffer.from(content,'utf16le')]);
+}

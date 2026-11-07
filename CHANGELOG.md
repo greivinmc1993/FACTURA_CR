@@ -1,3 +1,9 @@
+## 0.6.45 — Corrección del QA entre versiones
+
+- Prueba de actualización 0.6.34 → 0.6.45 compatible con migraciones aditivas de SQLite.
+- Verificación estricta de registros y columnas originales; rechazo de pérdidas, cambios de datos y costos históricos inventados.
+- Seis pruebas adicionales del comparador integradas en `npm test`.
+
 ## 0.6.45 — Alertas y lista de reposición de inventario
 
 - Vista priorizada por agotados y existencias bajas, separada por empresa.

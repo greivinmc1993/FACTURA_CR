@@ -484,3 +484,7 @@ El dashboard agrega ranking de productos por margen bruto cubierto usando única
 
 ### Alertas de inventario v0.6.45
 En Inventario y servicios, la lista de reposición muestra productos agotados o bajo mínimos cuando las alertas están habilitadas. Permite exportar CSV con sugerencias; los costos son estimaciones parciales en CRC y no se registra ninguna compra.
+
+### Corrección QA de migración 0.6.34 → 0.6.45
+
+La verificación compara las columnas históricas y exige valores idénticos. Permite la columna nueva `sale_lines.unit_cost_cents`, pero comprueba que quede `NULL` para líneas anteriores a su creación. El comando `npm test` incluye una regresión específica.

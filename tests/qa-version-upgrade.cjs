@@ -7,6 +7,7 @@ const os=require('node:os');
 const path=require('node:path');
 const {spawn}=require('node:child_process');
 const crypto=require('node:crypto');
+const {assertHistoricalRowsPreserved}=require('./qa-upgrade-schema.cjs');
 const root=path.resolve(__dirname,'..');
 const release=path.join(root,'release');
 const evidence=path.join(release,'qa-evidence');
@@ -109,7 +110,7 @@ function verifyAfter(expected){
  try{
   assert.equal(db.pragma('integrity_check',{simple:true}),'ok','Integridad SQLite');
   assert.deepEqual(db.pragma('foreign_key_check'),[],'Integridad de relaciones');
-  assert.deepEqual(snapshot(db),expected,'La actualización cambió o eliminó registros comerciales');
+  assertHistoricalRowsPreserved(expected,snapshot(db));
   const sale=db.prepare('SELECT total_cents,paid_cents,balance_cents FROM sales').get();
   assert.equal(sale.total_cents-sale.paid_cents,sale.balance_cents,'Saldo de crédito alterado');
   assert.equal(db.prepare('SELECT stock FROM products').get().stock,7,'Inventario alterado');

@@ -1,3 +1,13 @@
+## 0.6.43 — Comparativas y análisis comercial
+
+- Comparación con el período anterior de igual longitud, respetando empresa y filtros, con crecimiento de ventas y transacciones.
+- Resumen de evolución mensual y clientes recurrentes.
+- Migración aditiva `sale_lines.unit_cost_cents` y captura del costo histórico **solo en ventas nuevas con costo registrado en CRC**.
+- Estimación de margen bruto parcial sobre líneas cubiertas, con porcentaje de cobertura y advertencias de datos faltantes.
+- Exportación CSV y PDF incorpora comparativa, márgenes parciales, meses y clientes frecuentes.
+- QA ampliado: tests de cálculos, contratos, integración SQLite y comparación entre períodos.
+- Mantiene instalador Windows y GitHub Actions; no se generan archivos de notas por versión.
+
 # Versión 0.6.42 — Dashboard comercial avanzado
 
 - Diseño equilibrado en ocho tarjetas KPI, rankings, gráficas, resúmenes, pagos y tabla paginada.

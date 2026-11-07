@@ -643,3 +643,18 @@ button.posClientChangeButton{font-size:12px;flex-shrink:0;padding:9px 12px}
 .bizDashPager{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:15px;flex-wrap:wrap;color:#5d7781;font-size:.82rem}.bizDashPager>div{display:flex;gap:8px}.bizDashSuccess{background:#ecf9f1!important;color:#196846;border:1px solid #bbdfca!important}
 @media(max-width:1100px){.bizDashMetricsExtended{grid-template-columns:repeat(2,minmax(0,1fr))}.bizDashBalancedGrid{grid-template-columns:1fr}.bizDashFilterGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.bizDashMetricsExtended,.bizDashFilterGrid,.bizDashSplitStats{grid-template-columns:1fr}.bizDashAdvanced .bizDashMethods{grid-template-columns:1fr}.bizDashExportActions,.bizDashExportActions button{width:100%}.bizDashAdvanced .bizDashSection{padding:14px}.bizDashFiltersAdvanced{padding:15px}}
+
+/* 0.6.43 — Comparaciones y márgenes: mantener tarjetas del dashboard alineadas. */
+.bizDashCompareHeading{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:5px 2px}
+.bizDashCompareHeading h4{font-size:1.17rem;color:#1a4952;margin:0 0 5px}.bizDashCompareHeading .hint{margin:0}.bizDashCompareHeading>span{font-size:.78rem;color:#57737f}
+.bizDashCompareMetrics .bizDashMetric{min-height:145px}
+.bizDashProfitStat{display:grid;gap:6px;padding:16px;border:1px solid #c9e6dc;border-radius:13px;background:#eef9f5;color:#16584e}
+.bizDashProfitStat span{font-size:.84rem}.bizDashProfitStat strong{font-size:clamp(1.3rem,2.8vw,1.8rem);font-variant-numeric:tabular-nums}
+.bizDashCoverageBar{height:12px;overflow:hidden;border-radius:99px;background:#e2edf0;margin:15px 0 8px}
+.bizDashCoverageBar>div{height:100%;min-width:0;background:linear-gradient(90deg,#168876,#58c7a4);border-radius:99px}
+.bizDashWarning{font-size:.8rem;color:#80570b;border-left:3px solid #dbac3d;background:#fff9eb;padding:11px 12px;line-height:1.5;border-radius:5px}
+.bizDashMonthList{display:grid;gap:8px;max-height:300px;overflow-y:auto}
+.bizDashMonthList>div{display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:12px;padding:13px;background:#f4faf8;border:1px solid #e0ebe7;border-radius:11px}
+.bizDashMonthList strong{text-align:right;color:#126957;font-variant-numeric:tabular-nums}.bizDashMonthList small{font-size:.78rem;color:#657f82}
+.bizDashContext{display:grid;gap:12px}.bizDashContext p{margin:0;background:#f6f9fb;border:1px solid #e2ebf0;padding:14px;border-radius:11px;line-height:1.55;color:#486370;font-size:.87rem}
+@media(max-width:600px){.bizDashMonthList>div{grid-template-columns:1fr auto}.bizDashMonthList small{grid-column:1/-1}.bizDashMonthList strong{text-align:right}}

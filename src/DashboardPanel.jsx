@@ -94,6 +94,31 @@ export default function DashboardPanel({companyId,company}){
     <Metric label="Unidades vendidas" value={fmtCount(s.units)} icon="▣" tone="blue" note="Unidades de líneas vendidas"/>
     <Metric label="IVA del período" value={money(s.tax_cents)} icon="%" tone="amber" note="De las ventas activas del período"/>
    </div>
+   <div className="bizDashCompareHeading"><div><h4>Análisis del período</h4><p className="hint">Comparación con un intervalo anterior de la misma duración, manteniendo los filtros seleccionados.</p></div><span>{data.comparison?.from} — {data.comparison?.to} · Período anterior (UTC)</span></div>
+   <div className="bizDashMetrics bizDashMetricsExtended bizDashCompareMetrics">
+    <Metric label="Ventas período anterior" value={money(data.comparison?.previous?.revenue_cents)} icon="↶" tone="blue" note="Mismo número de días · ventas activas"/>
+    <Metric label="Variación de ventas" value={data.comparison?.revenue_change_pct===null?'Sin base':`${data.comparison.revenue_change_pct>0?'+':''}${data.comparison.revenue_change_pct}%`} icon="↗" tone="green" note={`Diferencia: ${money(Math.abs(data.comparison?.revenue_change_cents||0))} ${data.comparison?.revenue_change_cents<0?'menos':'más o igual'}`}/>
+    <Metric label="Operaciones anteriores" value={fmtCount(data.comparison?.previous?.sale_count)} icon="▤" tone="blue" note="Ventas válidas del intervalo anterior"/>
+    <Metric label="Variación de operaciones" value={data.comparison?.sales_change_pct===null?'Sin base':`${data.comparison.sales_change_pct>0?'+':''}${data.comparison.sales_change_pct}%`} icon="≋" tone="amber" note={`${(data.comparison?.sales_change||0)>0?'+':''}${data.comparison?.sales_change||0} ventas frente al anterior`}/>
+   </div>
+   <div className="bizDashGrid bizDashBalancedGrid">
+    <Section title="Margen bruto estimado" description="Solo ventas con costo guardado en el momento de vender; NO equivale a utilidad neta.">
+     <div className="bizDashProfitStat"><span>Margen bruto de líneas cubiertas</span><strong>{money(data.profitability?.estimated_gross_margin_cents)}</strong></div>
+     <div className="bizDashCoverageBar" role="progressbar" aria-label="Líneas con costo histórico" aria-valuenow={data.profitability?.coverage_pct||0} aria-valuemin="0" aria-valuemax="100"><div style={{width:`${data.profitability?.coverage_pct||0}%`}}/></div>
+     <p className="hint">Cobertura: {data.profitability?.priced_lines||0} de {data.profitability?.total_lines||0} líneas ({data.profitability?.coverage_pct||0}%). {data.profitability?.unpriced_lines||0} sin costo histórico.</p>
+     <div className="bizDashFinancialRows"><div><span>Ingresos netos de IVA cubiertos</span><strong>{money(data.profitability?.covered_net_sales_cents)}</strong></div><div><span>Costos capturados</span><strong>{money(data.profitability?.cost_cents)}</strong></div></div>
+     <p className="bizDashWarning">No se asignan costos actuales a ventas antiguas. El margen es parcial si hay líneas sin costo y excluye gastos operativos.</p>
+    </Section>
+    <Section title="Evolución mensual" description="Ventas activas agrupadas por mes, según los filtros seleccionados (UTC)">
+     <div className="bizDashMonthList">{data.monthly?.length?data.monthly.map(x=><div key={x.month}><span>{x.month}</span><strong>{money(x.revenue_cents)}</strong><small>{fmtCount(x.sales)} ventas</small></div>):<p className="bizDashEmpty">No hay ventas en este período.</p>}</div>
+    </Section>
+   </div>
+   <div className="bizDashGrid bizDashBalancedGrid">
+    <Section title="Clientes frecuentes" description="Clientes registrados con dos o más compras válidas dentro del período"><Ranking items={data.frequent_clients||[]} unit="clientes"/></Section>
+    <Section title="Contexto comercial" description="Lectura de indicadores para tomar decisiones sin confundir importes">
+      <div className="bizDashContext"><p><strong>Ventas:</strong> fecha de creación de cada venta, incluido crédito aún no cobrado.</p><p><strong>Cobros:</strong> fecha de cada pago o abono, aunque pertenezca a una venta anterior.</p><p><strong>Margen:</strong> ventas sin IVA menos costo histórico de las líneas con dato de costo; no incluye salarios, gastos ni impuestos sobre utilidades.</p></div>
+    </Section>
+   </div>
    <div className="bizDashGrid bizDashBalancedGrid">
     <Section title="Evolución de ventas" description="Por día de registro (UTC) · no incluye anuladas"><div className="bizDashPlot">{data.daily.length?<div className="bizDashBars" aria-label="Gráfica de ventas por fecha">{data.daily.map(d=><div className="bizDashBarItem" key={d.day} title={`${d.day}: ${money(d.revenue_cents)} · ${d.sales} ventas`}><div className="bizDashBar" style={{height:`${Math.max(4,100*d.revenue_cents/peak)}%`}}/><small>{d.day.slice(5)}</small></div>)}</div>:<p className="bizDashEmpty">No hay ventas activas en estas fechas.</p>}</div><div className="bizDashChartFooter"><span>Base sin IVA: <b>{money(s.net_base_cents)}</b></span><span>Descuentos: <b>{money(s.discount_cents)}</b></span><span>IVA: <b>{money(s.tax_cents)}</b></span></div></Section>
     <Section title="Pagos recibidos" description="Por fecha de pago (UTC), incluyendo abonos de ventas anteriores"><div className="bizDashMethods">{data.payment_methods.length?data.payment_methods.map(p=><div className="bizDashMethod" key={p.method}><strong>{p.method}</strong><small>{fmtCount(p.operations)} movimientos</small><b>{money(p.amount_cents)}</b></div>):<p className="bizDashEmpty">Sin cobros para estos filtros.</p>}</div><div className="bizDashChartFooter"><strong>Total recibido: {money(s.collected_cents)}</strong></div></Section>

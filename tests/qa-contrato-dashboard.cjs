@@ -1,4 +1,4 @@
-// Contrato del dashboard comercial v0.6.42: empresa, filtros, informes completos y PDF.
+// Contrato del dashboard comercial v0.6.43: empresa, filtros, informes completos y PDF.
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');

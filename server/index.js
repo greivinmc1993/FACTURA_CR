@@ -122,6 +122,8 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
   );
   CREATE INDEX IF NOT EXISTS idx_sales_company_date ON sales(company_id,created_at);
   CREATE INDEX IF NOT EXISTS idx_sales_client ON sales(company_id,client_id);`);
+  // Costo histórico de la venta: NULL en registros anteriores o sin costo confiable.
+  addColumn('sale_lines','unit_cost_cents','INTEGER');
   // Campos reservados para comprobantes realmente emitidos por Hacienda.
   addColumn('sales','fe_consecutivo',"TEXT NOT NULL DEFAULT ''");
   addColumn('sales','fe_clave',"TEXT NOT NULL DEFAULT ''");
@@ -1066,8 +1068,14 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
         }
         const id=Number(db.prepare(`INSERT INTO sales(company_id,client_id,sale_type,subtotal_cents,discount_cents,tax_cents,total_cents,paid_cents,balance_cents)
           VALUES (?,?,?,?,?,?,?,?,?)`).run(companyId,clientId,saleType,subtotal,discount,tax,total,paid,total-paid).lastInsertRowid);
-        const addLine=db.prepare(`INSERT INTO sale_lines(sale_id,product_id,description,quantity,unit_price_cents,tax_rate,discount_cents,subtotal_cents,tax_cents,total_cents) VALUES (?,?,?,?,?,?,?,?,?,?)`);
-        for(const l of detailed)addLine.run(id,l.product.id,l.product.description,l.quantity,l.unit,l.product.tax_rate,l.discount,l.lineSubtotal,l.lineTax,l.lineTotal);
+        const addLine=db.prepare(`INSERT INTO sale_lines(sale_id,product_id,description,quantity,unit_price_cents,tax_rate,discount_cents,subtotal_cents,tax_cents,total_cents,unit_cost_cents) VALUES (?,?,?,?,?,?,?,?,?,?,?)`);
+        // Captura el costo al vender, no el costo actual del catálogo. No estimar históricos.
+        for(const l of detailed){
+          const cost=Number(l.product.cost);
+          const historicalCost=l.product.currency==='CRC'&&Number.isFinite(cost)&&cost>0&&cost<=1e10
+            ?Math.round(cost*100):null;
+          addLine.run(id,l.product.id,l.product.description,l.quantity,l.unit,l.product.tax_rate,l.discount,l.lineSubtotal,l.lineTax,l.lineTotal,historicalCost);
+        }
         const addPayment=db.prepare('INSERT INTO sale_payments(sale_id,method,amount_cents) VALUES (?,?,?)');
         for(const pay of payments)addPayment.run(id,pay.method,pay.amount);
         return {id,total_cents:total,balance_cents:total-paid};

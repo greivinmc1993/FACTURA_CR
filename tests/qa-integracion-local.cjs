@@ -49,7 +49,7 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.42')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.43')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -78,6 +78,12 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    assert.deepEqual([s.subtotal_cents,s.tax_cents,s.total_cents,s.balance_cents],[61900,8100,70000,0]);
    assert.equal(sql.prepare('SELECT stock FROM products WHERE id=?').get(prodId).stock,9);
    assert.equal(sql.prepare("SELECT COUNT(*) AS n FROM inventory_movements WHERE product_id=? AND reason='Venta POS'").get(prodId).n,1);sql.close();
+  });
+  await check('Costo histórico de línea capturado al vender y no se recalcula al actualizar catálogo',async()=>{
+   const sql=read();
+   try{const line=sql.prepare('SELECT unit_cost_cents,quantity FROM sale_lines WHERE sale_id=?').get(saleId);
+    assert.equal(line.unit_cost_cents,30000);assert.equal(line.quantity,1);
+   }finally{sql.close()}
   });
   await check('Contado: pago insuficiente no crea otra venta ni mueve stock',async()=>{
    const before=read();const count=before.prepare('SELECT COUNT(*) AS n FROM sales').get().n, stock=before.prepare('SELECT stock FROM products WHERE id=?').get(prodId).stock;before.close();
@@ -166,6 +172,17 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    r=await call('GET',`/api/companies/${a}/dashboard?${range}&client=${clientId}&type=credito`);assert.equal(r.status,200);assert.ok(r.body.sale_types.every(x=>x.type==='credito'));
    r=await call('GET',`/api/companies/${b}/dashboard?${range}&client=${clientId}`);assert.equal(r.status,400);
   });
+  await check('Rentabilidad muestra cobertura parcial y omite líneas sin costo histórico',async()=>{
+   const sql=new DatabaseSync(dbPath);
+   try{sql.prepare('UPDATE sale_lines SET unit_cost_cents=NULL WHERE sale_id=?').run(creditId)}finally{sql.close()}
+   const r=await call('GET',`/api/companies/${a}/dashboard?from=2026-01-01&to=2026-12-31`);
+   assert.equal(r.status,200,JSON.stringify(r.body));
+   assert.ok(r.body.profitability.priced_lines>=1);
+   assert.ok(r.body.profitability.unpriced_lines>=1);
+   assert.equal(r.body.profitability.estimated_gross_margin_cents,r.body.profitability.covered_net_sales_cents-r.body.profitability.cost_cents);
+   assert.ok(r.body.monthly.length>=1);
+   assert.ok(r.body.comparison.from<'2026-01-01');
+  });
   await check('Dashboard: método, estado y paginación',async()=>{
    const base=`/api/companies/${a}/dashboard`;
    let r=await call('GET',base+'?from=2026-01-01&to=2026-12-31&method=Tarjeta');
@@ -198,6 +215,21 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    assert.equal(page1.status,200);assert.equal(page1.body.total,510);assert.equal(page1.body.rows.length,50);assert.equal(page2.body.rows.length,50);
    const csv=await call('GET',`/api/companies/${a}/dashboard/export.csv?${q}&kind=detallado`);
    assert.equal(csv.status,200);assert.equal(csv.body.trim().split('\r\n').length,512,'sep=; + cabecera + 510 ventas');
+  });
+  await check('Comparación anterior respeta rango y mantiene separadas empresas y anulaciones',async()=>{
+   const sql=new DatabaseSync(dbPath);
+   try{
+    sql.prepare("INSERT INTO sales(company_id,sale_type,status,subtotal_cents,discount_cents,tax_cents,total_cents,paid_cents,balance_cents,created_at) VALUES (?, 'contado','activa',1000,0,130,1130,1130,0,'2026-05-03 12:00:00')").run(a);
+    sql.prepare("INSERT INTO sales(company_id,sale_type,status,subtotal_cents,discount_cents,tax_cents,total_cents,paid_cents,balance_cents,created_at) VALUES (?, 'contado','activa',100000,0,13000,113000,113000,0,'2026-05-03 12:00:00')").run(b);
+   }finally{sql.close()}
+   const r=await call('GET',`/api/companies/${a}/dashboard?from=2026-05-04&to=2026-05-04`);
+   assert.equal(r.status,200,JSON.stringify(r.body));assert.equal(r.body.comparison.from,'2026-05-03');assert.equal(r.body.comparison.to,'2026-05-03');
+   assert.equal(r.body.comparison.previous.revenue_cents,1130);
+   assert.equal(r.body.comparison.previous.sale_count,1);
+   const csv=await call('GET',`/api/companies/${a}/dashboard/export.csv?from=2026-05-04&to=2026-05-04&kind=resumen`);
+   assert.equal(csv.status,200);assert.ok(csv.body.includes('Margen bruto estimado'));assert.ok(csv.body.includes('Comparación con período anterior'));
+   const pdf=await call('GET',`/api/companies/${a}/dashboard/export.html?from=2026-05-04&to=2026-05-04&kind=resumen`);
+   assert.equal(pdf.status,200);assert.ok(pdf.body.includes('Margen bruto estimado'));
   });
   await check('Dashboard rechaza fechas, clientes y filtros inválidos',async()=>{
    for(const suffix of ['from=2026-02-30&to=2026-03-01','from=2026-12-31&to=2026-01-01','from=2026-01-01&to=2026-12-31&type=incorrecto','from=2026-01-01&to=2026-12-31&method=Inexistente']){

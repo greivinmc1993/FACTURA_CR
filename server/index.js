@@ -1,3 +1,4 @@
+import { registerInventoryValuationRoutes } from './inventory-valuation.js';
 import { buildInventoryAlerts } from './inventory-alerts.js';
 import { registerKardexRoutes } from './kardex.js';
 import { registerDashboardRoutes } from './dashboard.js';
@@ -730,6 +731,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     res.json(buildInventoryAlerts(products));
   });
   registerKardexRoutes(app,db);
+  registerInventoryValuationRoutes(app,db);
   // Movimientos: la API calcula el saldo dentro de una transacción SQLite.
   app.get('/api/companies/:companyId/inventory/movements',(req,res)=>{
     const companyId=Number(req.params.companyId), productId=Number(req.query.productId);
@@ -857,6 +859,22 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       const quote=db.prepare('SELECT * FROM quotations WHERE id=? AND company_id=?').get(id,companyId);
       if(!quote)return res.status(404).json({error:'Cotización no encontrada.'});
       res.json({...quote,lines:db.prepare('SELECT * FROM quotation_lines WHERE quotation_id=? ORDER BY id').all(id)});
+    }catch(e){res.status(400).json({error:e.message})}
+  });
+  // Eliminar exclusivamente la proforma de esta empresa y sus líneas, sin tocar ventas ni inventario.
+  app.delete('/api/companies/:companyId/quotations/:quoteId',(req,res)=>{
+    try{
+      const companyId=saleCompany(req),id=Number(req.params.quoteId);
+      if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Número de proforma inválido.'});
+      const deleted=db.transaction(()=>{
+        const quote=db.prepare('SELECT id FROM quotations WHERE id=? AND company_id=?').get(id,companyId);
+        if(!quote)return false;
+        db.prepare('DELETE FROM quotation_lines WHERE quotation_id=?').run(id);
+        db.prepare('DELETE FROM quotations WHERE id=? AND company_id=?').run(id,companyId);
+        return true;
+      })();
+      if(!deleted)return res.status(404).json({error:'Proforma no encontrada en esta empresa.'});
+      res.json({ok:true,id});
     }catch(e){res.status(400).json({error:e.message})}
   });
   // Crear y editar cotizaciones sin crear ventas ni mover existencias.

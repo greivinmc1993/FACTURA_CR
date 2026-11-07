@@ -30,9 +30,10 @@ export default function QuotesPanel({companyId,company}){
  const [title,setTitle]=useState(''),[notes,setNotes]=useState('');
  const [manualDesc,setManualDesc]=useState(''),[manualPrice,setManualPrice]=useState(''),[manualRate,setManualRate]=useState('13');
  const [selectedQuote,setSelectedQuote]=useState(null);
+ const [deleteCandidate,setDeleteCandidate]=useState(null),[deleting,setDeleting]=useState(false);
  useEffect(()=>{
   let active=true;
-  setProducts([]);setClients([]);setQuotes([]);setClient(null);setClientSearch('');setClientName('');setLines([]);setTitle('');setNotes('');setSelectedQuote(null);setEditingQuote(null);setFreeClient({client_identification:'',client_trade_name:'',client_phone:'',client_phone_alt:'',client_email:'',client_address:''});setNotice('');
+  setProducts([]);setClients([]);setQuotes([]);setClient(null);setClientSearch('');setClientName('');setLines([]);setTitle('');setNotes('');setSelectedQuote(null);setEditingQuote(null);setDeleteCandidate(null);setFreeClient({client_identification:'',client_trade_name:'',client_phone:'',client_phone_alt:'',client_email:'',client_address:''});setNotice('');
   if(!companyId)return;
   Promise.all([req(`/api/companies/${companyId}/products`),req(`/api/companies/${companyId}/clients`),req(`/api/companies/${companyId}/quote-settings`),req(`/api/companies/${companyId}/quotations`)]).then(([p,c,s,q])=>{
    if(!active)return;
@@ -97,6 +98,20 @@ export default function QuotesPanel({companyId,company}){
    setNotice(`Editando la proforma #${id}. Conservaremos su número y el logo con que fue guardada.`);
   }catch(e){setNotice(e.message)}
  };
+ const deleteQuote=async()=>{
+  if(!deleteCandidate||deleting)return;
+  const id=deleteCandidate.id;
+  setDeleting(true);
+  try{
+   await req(`/api/companies/${companyId}/quotations/${id}`,{method:'DELETE'});
+   setQuotes(old=>old.filter(q=>Number(q.id)!==Number(id)));
+   if(Number(selectedQuote?.id)===Number(id))setSelectedQuote(null);
+   if(Number(editingQuote?.id)===Number(id))resetDraft();
+   setDeleteCandidate(null);
+   setNotice(`Proforma #${id} eliminada correctamente. No se modificaron ventas ni existencias.`);
+   try{setQuotes(await req(`/api/companies/${companyId}/quotations`))}catch{setNotice(`Proforma #${id} eliminada correctamente. No se pudo actualizar el historial; vuelve a abrir Cotizaciones para actualizarlo.`)}
+  }catch(e){setNotice(`No se pudo eliminar la proforma #${id}: ${e.message}`)}finally{setDeleting(false)}
+ };
  const savePDF=async()=>{
   if(!selectedQuote)return;
   try{
@@ -117,6 +132,7 @@ export default function QuotesPanel({companyId,company}){
     <div className="quoteManual"><h4>O agrega un concepto personalizado</h4><div className="quoteManualFields"><label className="field">Descripción<input maxLength="250" value={manualDesc} onChange={e=>setManualDesc(e.target.value)} placeholder="Servicio o trabajo a realizar"/></label><label className="field">Precio con IVA (₡)<input type="number" min="0" value={manualPrice} onChange={e=>setManualPrice(e.target.value)}/></label><label className="field">IVA (%)<select value={manualRate} onChange={e=>setManualRate(e.target.value)}><option value="13">13%</option><option value="4">4%</option><option value="2">2%</option><option value="1">1%</option><option value="0">0%</option></select></label></div><button type="button" className="secondary" onClick={addManual}>+ Agregar concepto</button></div>
     <h4>Detalle estimado</h4>{estimate.length?<div className="quoteLines">{estimate.map(l=><div className="quoteLine" key={l.id}><div><strong>{l.description}</strong><small>IVA {l.tax_rate}% · {money(l.total)}</small></div><input aria-label={`Cantidad de ${l.description}`} type="number" min="1" max="100000" value={l.quantity} onChange={e=>setLines(old=>old.map(x=>x.id===l.id?{...x,quantity:Number(e.target.value)}:x))}/><button type="button" className="danger" onClick={()=>setLines(old=>old.filter(x=>x.id!==l.id))}>Quitar</button></div>)}</div>:<p className="hint">Agrega artículos del catálogo o conceptos de servicio personalizados.</p>}
     <label className="field">Observaciones de esta cotización<textarea rows="2" maxLength="1500" value={notes} onChange={e=>setNotes(e.target.value)}/></label><div className="quoteTotal"><span>Importe estimado (IVA incluido)</span><strong>{money(estimateTotal)}</strong></div><p className="hint">Vigencia configurada: {settings.valid_days} días. El logo y las condiciones se toman de tus preferencias guardadas.</p><button type="button" disabled={busy||!lines.length||estimateTotal<=0} onClick={saveQuote}>{busy?'Guardando…':editingQuote?'Guardar cambios de proforma':'Guardar cotización'}</button>
-   </div><div className="card"><h3>Historial de cotizaciones</h3><p className="hint">Hasta las 300 más recientes. Abre cualquiera para descargar nuevamente su PDF.</p><div className="quoteHistory">{quotes.length?quotes.map(q=><button type="button" className={'quoteHistoryItem '+(selectedQuote?.id===q.id?'selected':'')} key={q.id} onClick={()=>openQuote(q.id)}><strong>Proforma #{q.id} · {money(q.total_cents)}</strong><small>{q.client_name}</small><small>{q.created_at} · {q.title||'Sin título'}</small></button>):<p className="hint">Todavía no has guardado cotizaciones.</p>}</div>{selectedQuote&&<div className="quoteSelected"><h4>Proforma #{selectedQuote.id}</h4><p><strong>{selectedQuote.client_name}</strong> · {money(selectedQuote.total_cents)}</p><p className="hint">{selectedQuote.lines?.length} conceptos · {selectedQuote.valid_days} días de vigencia · Logo guardado en el documento: {selectedQuote.logo_snapshot?'Sí':'No'}</p><div className="quoteSelectedActions"><button type="button" className="secondary" onClick={()=>editQuote(selectedQuote.id)}>Editar proforma</button><button type="button" onClick={savePDF}>Guardar PDF de la proforma</button></div></div>}</div></div>
+   </div><div className="card"><h3>Historial de cotizaciones</h3><p className="hint">Hasta las 300 más recientes. Abre cualquiera para descargar nuevamente su PDF.</p><div className="quoteHistory">{quotes.length?quotes.map(q=><button type="button" className={'quoteHistoryItem '+(selectedQuote?.id===q.id?'selected':'')} key={q.id} onClick={()=>openQuote(q.id)}><strong>Proforma #{q.id} · {money(q.total_cents)}</strong><small>{q.client_name}</small><small>{q.created_at} · {q.title||'Sin título'}</small></button>):<p className="hint">Todavía no has guardado cotizaciones.</p>}</div>{selectedQuote&&<div className="quoteSelected"><h4>Proforma #{selectedQuote.id}</h4><p><strong>{selectedQuote.client_name}</strong> · {money(selectedQuote.total_cents)}</p><p className="hint">{selectedQuote.lines?.length} conceptos · {selectedQuote.valid_days} días de vigencia · Logo guardado en el documento: {selectedQuote.logo_snapshot?'Sí':'No'}</p><div className="quoteSelectedActions"><button type="button" className="secondary" onClick={()=>editQuote(selectedQuote.id)}>Editar proforma</button><button type="button" onClick={savePDF}>Guardar PDF de la proforma</button><button type="button" className="danger" disabled={deleting||busy} onClick={()=>setDeleteCandidate({id:selectedQuote.id,client_name:selectedQuote.client_name})}>Eliminar proforma</button></div></div>}</div></div>
+  {deleteCandidate&&<div className="quoteDeleteOverlay" role="presentation"><div className="quoteDeleteDialog" role="alertdialog" aria-modal="true" aria-labelledby="quoteDeleteTitle" aria-describedby="quoteDeleteMessage"><h3 id="quoteDeleteTitle">¿Eliminar la proforma #{deleteCandidate.id}?</h3><p id="quoteDeleteMessage">Se eliminarán esta proforma y sus conceptos del historial de <strong>{deleteCandidate.client_name}</strong>. Esta acción no se puede deshacer. No se modificarán ventas, pagos ni inventario.</p><div className="quoteDeleteActions"><button type="button" className="secondary" disabled={deleting} onClick={()=>setDeleteCandidate(null)}>Cancelar</button><button type="button" className="danger" disabled={deleting} onClick={deleteQuote}>{deleting?'Eliminando…':'Sí, eliminar proforma'}</button></div></div></div>}
  </section>;
 }

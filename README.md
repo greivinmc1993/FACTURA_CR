@@ -1,3 +1,12 @@
+## Nuevo en v0.6.49 — Valoración de inventario
+
+- Nueva pantalla **Valoración inventario** con indicadores y tabla paginada de productos activos bajo control de existencias.
+- Valor a costo registrado expresado en colones; los productos sin costo válido en CRC o con costo en USD se informan **sin valorar**, sin aplicar tipos de cambio arbitrarios.
+- Filtros por nombre/SKU, estado de existencias y cobertura de costos.
+- Exportaciones **CSV completo compatible con Excel** y **PDF horizontal** desde la aplicación de escritorio; ambos respetan los filtros y contienen todos los productos filtrados, sin límite de 50 filas.
+- No modifica existencias ni el esquema de SQLite. Mantiene Kardex, ventas, proformas y los workflows de QA.
+- Pruebas: `npm test`, `npm run build`, `npm run dist:win`.
+
 ## FacturaCR v0.6.41 — Dashboard comercial
 
 - El historial de copias automáticas ahora permite **buscar por nombre o fecha**, incluso entre archivos más antiguos que los 20 mostrados inicialmente.
@@ -500,3 +509,7 @@ Ejecuta `npm test` antes de `npm run dist:win`; valida el trabajo de GitHub Acti
 ### Ajustes de inventario v0.6.47
 
 En Inventario y servicios → Movimientos puedes establecer existencias finales incluso en cero, seleccionar o escribir un motivo, previsualizar el saldo y confirmar un movimiento que queda registrado en el Kardex. Requiere motivo mínimo de 5 caracteres y evita dobles envíos desde la interfaz.
+
+### Proformas v0.6.49
+
+Desde el historial puedes seleccionar una proforma y usar **Eliminar proforma**. Requiere confirmar; elimina únicamente la proforma y sus conceptos en la empresa activa. No elimina ventas, pagos o existencias. La acción es irreversible: realiza un respaldo si necesitas conservar la información.

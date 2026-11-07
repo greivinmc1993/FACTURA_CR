@@ -1,3 +1,18 @@
+## v0.6.49 — Valoración de inventario al costo
+
+- Vista global por empresa de valor conocido de existencias en colones y productos sin valoración por falta de costo CRC válido.
+- Filtros por SKU/nombre, estado y disponibilidad de costo; paginación 50 artículos por página.
+- Exportación CSV completa apta para Excel y PDF A4 horizontal, con todas las filas filtradas.
+- Sin cambiar existencias, movimientos, estructura SQLite o cálculos comerciales.
+- Nuevas pruebas unitarias e integración SQL para valorar existencias, exportar y aislar empresas.
+
+## v0.6.48 — Eliminación de proformas
+
+- Botón Eliminar proforma con doble paso: selección y confirmación explícita.
+- API DELETE aislada por empresa, eliminación transaccional de proformas y sus líneas.
+- Mensajes de éxito y error; no se afectan ventas, pagos ni inventario.
+- Nuevas pruebas de QA para eliminación, inexistencia y aislamiento multiempresa.
+
 ## 0.6.47 — Ajustes de inventario y auditoría
 
 - Permite realizar un ajuste con existencias finales en cero.

@@ -21,6 +21,7 @@ fs.writeFileSync(path.join(staging,'index.mjs'),serverText);
 fs.copyFileSync(path.join(root,'server','dashboard.js'),path.join(staging,'dashboard.js'));
 fs.copyFileSync(path.join(root,'server','inventory-alerts.js'),path.join(staging,'inventory-alerts.js'));
 fs.copyFileSync(path.join(root,'server','kardex.js'),path.join(staging,'kardex.js'));
+fs.copyFileSync(path.join(root,'server','inventory-valuation.js'),path.join(staging,'inventory-valuation.js'));
 for(const name of ['express.mjs','sqlite.mjs'])fs.copyFileSync(path.join(__dirname,'qa-adapters',name),path.join(staging,name));
 fs.copyFileSync(path.join(root,'server','xlsx.js'),path.join(staging,'xlsx.js'));
 // El módulo ESM se interpreta como ESM incluso si el proyecto padre usa CommonJS.
@@ -51,7 +52,7 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.47')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.49')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -72,6 +73,24 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   await check('Producto IVA incluido ₡700 con existencias',async()=>{
    const r=await call('POST',`/api/companies/${a}/products`,{kind:'producto',description:'Producto QA',cabys:'1234567890123',product_code:'SKU700',price:'700',cost:'300',currency:'CRC',tax_code:'08',price_includes_tax:'1',unit:'Unid',stock:'10',min_stock:'2',track_stock:'1',alert_enabled:'1'});
    assert.equal(r.status,201,JSON.stringify(r.body));prodId=r.body.id;
+  });
+  await check('Valoración de existencias por empresa, costo CRC y filtros',async()=>{
+   let r=await call('GET',`/api/companies/${a}/inventory/valuation`);
+   assert.equal(r.status,200,JSON.stringify(r.body));assert.equal(r.body.summary.products,1);
+   assert.equal(r.body.summary.valueCents,300000);
+   r=await call('GET',`/api/companies/${b}/inventory/valuation`);assert.equal(r.body.summary.products,0);
+   r=await call('GET',`/api/companies/${a}/inventory/valuation?cost=known&status=available`);
+   assert.equal(r.body.rows.length,1);
+   r=await call('GET',`/api/companies/${a}/inventory/valuation?cost=missing`);assert.equal(r.body.rows.length,0);
+   r=await call('GET',`/api/companies/${a}/inventory/valuation?status=invalid`);assert.equal(r.status,400);
+   r=await call('GET','/api/companies/999999/inventory/valuation');assert.equal(r.status,404);
+  });
+  await check('Valoración exporta CSV y HTML completo y seguro',async()=>{
+   let r=await call('GET',`/api/companies/${a}/inventory/valuation/export.csv`);
+   assert.equal(r.status,200);assert.ok(r.body.includes('SKU700'));assert.ok(r.body.includes('3000.00'));
+   r=await call('GET',`/api/companies/${a}/inventory/valuation/export.html`);
+   assert.equal(r.status,200);assert.ok(r.body.includes('Valoración de inventario'));
+   assert.ok(r.body.includes('SKU700'));
   });
   await check('Kardex global: historial, saldos, aislamiento y filtros',async()=>{
    let r=await call('GET',`/api/companies/${a}/inventory/kardex`);
@@ -171,6 +190,16 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    const updated=await call('PUT',`/api/companies/${a}/quotations/${quoteId}`,{client_id:clientId,title:'Proforma QA editada',lines:[{existing_line_id:l.id,quantity:3,description:l.description}]});
    assert.equal(updated.status,200,JSON.stringify(updated.body));assert.equal(updated.body.id,quoteId);
    const sql=read();assert.equal(sql.prepare('SELECT COUNT(*) AS n FROM quotations').get().n,1);assert.equal(sql.prepare('SELECT quantity FROM quotation_lines WHERE quotation_id=?').get(quoteId).quantity,3);sql.close();
+  });
+  await check('Eliminar proforma respeta empresa, borra sus líneas y conserva inventario y ventas',async()=>{
+   const before=read();const stock=before.prepare('SELECT stock FROM products WHERE id=?').get(prodId).stock,sales=before.prepare('SELECT COUNT(*) AS n FROM sales').get().n;before.close();
+   let result=await call('DELETE',`/api/companies/${b}/quotations/${quoteId}`);assert.equal(result.status,404);
+   result=await call('DELETE',`/api/companies/${a}/quotations/0`);assert.equal(result.status,400);
+   result=await call('GET',`/api/companies/${a}/quotations/${quoteId}`);assert.equal(result.status,200);
+   result=await call('DELETE',`/api/companies/${a}/quotations/${quoteId}`);assert.equal(result.status,200,JSON.stringify(result.body));assert.equal(result.body.ok,true);
+   const after=read();assert.equal(after.prepare('SELECT COUNT(*) AS n FROM quotations WHERE id=?').get(quoteId).n,0);assert.equal(after.prepare('SELECT COUNT(*) AS n FROM quotation_lines WHERE quotation_id=?').get(quoteId).n,0);assert.equal(after.prepare('SELECT stock FROM products WHERE id=?').get(prodId).stock,stock);assert.equal(after.prepare('SELECT COUNT(*) AS n FROM sales').get().n,sales);after.close();
+   result=await call('GET',`/api/companies/${a}/quotations/${quoteId}`);assert.equal(result.status,404);
+   result=await call('DELETE',`/api/companies/${a}/quotations/${quoteId}`);assert.equal(result.status,404);
   });
   await check('Respaldo SQLite automático es íntegro',async()=>{
    const result=await call('POST','/api/backups/automatic/run');assert.equal(result.status,200,JSON.stringify(result.body));assert.equal(result.body.created,true);

@@ -1,3 +1,9 @@
+## 0.6.50 — Auditoría y corrección de exportaciones
+- Corrección de codificación UTF-8 con BOM para los CSV y protección de fórmulas sin alterar cantidades negativas.
+- Exportación de Kardex en CSV, XLSX y PDF; PDF de catálogo, movimientos, reposición y créditos; XLSX de valoración.
+- Diseño unificado de reportes PDF, metadatos y pruebas de exportación.
+- Se mantienen archivos históricos únicamente en este CHANGELOG.md.
+
 ## v0.6.49 — Valoración de inventario al costo
 
 - Vista global por empresa de valor conocido de existencias en colones y productos sin valoración por falta de costo CRC válido.

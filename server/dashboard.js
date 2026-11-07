@@ -1,11 +1,8 @@
+import {csvCell as safeCell} from './report-format.js';
 // FacturaCR: reportes comerciales por empresa. Solo lectura; nunca modifica ventas ni inventario.
 const cleanHtml = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cash = value => '₡'+(Number(value||0)/100).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const csvCell = value => {
-  const text=String(value??'');
-  // Evita ejecución de fórmulas al importar cadenas no confiables en hojas de cálculo.
-  return '"'+(/^[\s\u0000-\u001f]*[=+@\-\t\r]/.test(text)?"'"+text:text).replace(/"/g,'""')+'"';
-};
+const csvCell = value => safeCell(value); // Protege cadenas con fórmula sin alterar números negativos.
 const validDay=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
 const dateField = (col)=>`${col} BETWEEN ? AND ?`;
 

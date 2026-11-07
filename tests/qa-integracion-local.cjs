@@ -24,6 +24,7 @@ fs.copyFileSync(path.join(root,'server','kardex.js'),path.join(staging,'kardex.j
 fs.copyFileSync(path.join(root,'server','inventory-valuation.js'),path.join(staging,'inventory-valuation.js'));
 for(const name of ['express.mjs','sqlite.mjs'])fs.copyFileSync(path.join(__dirname,'qa-adapters',name),path.join(staging,name));
 fs.copyFileSync(path.join(root,'server','xlsx.js'),path.join(staging,'xlsx.js'));
+fs.copyFileSync(path.join(root,'server','report-format.js'),path.join(staging,'report-format.js'));
 // El módulo ESM se interpreta como ESM incluso si el proyecto padre usa CommonJS.
 fs.writeFileSync(path.join(staging,'package.json'),'{'+'"type":"module"'+'}');
 let passed=0,failed=0;
@@ -52,7 +53,7 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.49')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.50')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -102,6 +103,21 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    r=await call('GET',`/api/companies/${a}/inventory/kardex?type=invalido`);assert.equal(r.status,400);
    r=await call('GET',`/api/companies/${a}/inventory/kardex?from=2026-02-31`);assert.equal(r.status,400);
    r=await call('GET',`/api/companies/999999/inventory/kardex`);assert.equal(r.status,404);
+  });
+  await check('Kardex exporta PDF HTML y Excel verdadero',async()=>{
+   const pdf=await call('GET',`/api/companies/${a}/inventory/kardex/export.html?productId=${prodId}`);
+   assert.equal(pdf.status,200);assert.ok(pdf.body.includes('Kardex'));assert.ok(pdf.body.includes('Inventario inicial'));
+   const xlsx=await call('GET',`/api/companies/${a}/inventory/kardex/export.xlsx?productId=${prodId}`);
+   assert.equal(xlsx.status,200);assert.ok(Buffer.isBuffer(xlsx.body));assert.equal(xlsx.body.subarray(0,2).toString(),'PK');
+  });
+  await check('Valoración exporta XLSX con encabezados UTF-8',async()=>{
+   const xlsx=await call('GET',`/api/companies/${a}/inventory/valuation/export.xlsx`);
+   assert.equal(xlsx.status,200);assert.ok(Buffer.isBuffer(xlsx.body));assert.equal(xlsx.body.subarray(0,2).toString(),'PK');
+  });
+  await check('Catálogo y movimientos ofrecen PDF con datos de empresa',async()=>{
+   for(const u of [`/api/companies/${a}/products/export.html`,`/api/companies/${a}/inventory/movements/export.html`]){
+    const r=await call('GET',u);assert.equal(r.status,200);assert.ok(r.body.includes('QA Comercio A'));assert.ok(r.body.includes('Producto QA'));
+   }
   });
   await check('Kardex CSV tiene encabezado y movimientos filtrados',async()=>{
    const r=await call('GET',`/api/companies/${a}/inventory/kardex/export.csv?productId=${prodId}`);

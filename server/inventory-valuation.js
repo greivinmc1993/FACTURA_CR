@@ -1,7 +1,9 @@
+import {csvCell,reportHtml} from './report-format.js';
+import {makeXlsx} from './xlsx.js';
 // Valoración actual a costo de adquisición. Nunca modifica existencias.
 // CRC y USD no se mezclan sin una tasa de cambio comprobable.
 const escHtml = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const escCsv = v => '"' + String(v ?? '').replace(/^[=+@\-\t\r\n]/, "'$&").replace(/"/g,'""') + '"';
+const escCsv=csvCell;
 const toCRC = cents => '₡' + (cents/100).toLocaleString('es-CR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const statuses = ['all','available','low','out'];
 const costs = ['all','known','missing'];
@@ -67,6 +69,12 @@ export function registerInventoryValuationRoutes(app,db){
     row.costKnown?row.unitCost.toFixed(2):'',row.valueCents===null?'':(row.valueCents/100).toFixed(2),row.costKnown?'Sí':'No'].map(escCsv).join(';')+'\r\n');
   }
   res.end();
+ });
+ app.get('/api/companies/:companyId/inventory/valuation/export.xlsx',(req,res)=>{
+  const r=run(req,res);if(!r)return;
+  const head=['Empresa','Identificación','SKU','Producto','Unidad','Existencias','Mínimo','Estado','Moneda','Costo unitario CRC','Valor al costo CRC','Costo válido'];
+  const rows=r.rows.map(x=>[r.company.trade_name||r.company.legal_name,r.company.identification,x.sku,x.description,x.unit,x.stock,x.minStock,x.status,x.currency,x.costKnown?x.unitCost:'',x.valueCents===null?'':x.valueCents/100,x.costKnown?'Sí':'No']);
+  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.setHeader('Content-Disposition','attachment; filename="FacturaCR_valoracion_inventario.xlsx"');res.send(makeXlsx('Valoración',head,rows));
  });
  app.get('/api/companies/:companyId/inventory/valuation/export.html',(req,res)=>{
   const r=run(req,res);if(!r)return;

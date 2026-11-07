@@ -18,17 +18,28 @@ export default function KardexPanel({companyId}){
   return()=>abort.abort();
  },[companyId,filters,page]);
  const change=(key,val)=>{setFilters(f=>({...f,[key]:val}));setPage(1)};
- const exportCsv=async()=>{
-  if(!companyId||exporting)return;
-  setExporting(true);setError('');
-  try{const p=new URLSearchParams(filters),res=await fetch(`/api/companies/${companyId}/inventory/kardex/export.csv?${p}`);
-   if(!res.ok){const j=await res.json();throw Error(j.error||'No se pudo exportar.')}const blob=await res.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`FacturaCR_kardex_empresa_${companyId}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+ const exportReport=async format=>{
+  if(!companyId||exporting)return;setExporting(true);setError('');
+  try{
+   const params=new URLSearchParams(filters),extension=format==='pdf'?'html':format;
+   const response=await fetch(`/api/companies/${companyId}/inventory/kardex/export.${extension}?${params}`);
+   if(!response.ok){const j=await response.json().catch(()=>({}));throw Error(j.error||'No se pudo exportar el Kardex.')}
+   const name=`FacturaCR_kardex_empresa_${companyId}`;
+   if(format==='pdf'){
+    if(!window.facturacrReports?.savePdf)throw Error('La exportación a PDF requiere la aplicación de escritorio.');
+    const result=await window.facturacrReports.savePdf(await response.text(),name+'.pdf',{landscape:true});
+    if(!result?.success&&!result?.cancelled)throw Error(result?.error||'No se pudo guardar el PDF.');
+   }else{
+    const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name+'.'+format;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+   }
   }catch(e){setError(e.message)}finally{setExporting(false)}
  };
+
  if(!companyId)return <section className="card">Selecciona una empresa para consultar el Kardex.</section>;
  const summary=data?.summary||{count:0,increases:0,decreases:0,products:0};
  return <div className="kardexWorkspace">
-  <section className="card kardexHero"><div><small className="kardexEyebrow">TRAZABILIDAD DE EXISTENCIAS</small><h3>Kardex · Movimientos de inventario</h3><p className="hint">Registros históricos de entradas, salidas y ajustes. Esta pantalla es de solo lectura; no modifica existencias.</p></div><button type="button" disabled={exporting||loading} onClick={exportCsv}>{exporting?'Exportando…':'Exportar CSV completo'}</button></section>
+  <section className="card kardexHero"><div><small className="kardexEyebrow">TRAZABILIDAD DE EXISTENCIAS</small><h3>Kardex · Movimientos de inventario</h3><p className="hint">Registros históricos de entradas, salidas y ajustes. Esta pantalla es de solo lectura; no modifica existencias.</p></div><div className="actions"><button type="button" className="secondary" disabled={exporting||loading} onClick={()=>exportReport('csv')}>CSV</button><button type="button" className="secondary" disabled={exporting||loading} onClick={()=>exportReport('xlsx')}>Excel .xlsx</button><button type="button" disabled={exporting||loading} onClick={()=>exportReport('pdf')}>{exporting?'Preparando…':'Guardar PDF'}</button></div></section>
   <section className="card kardexFilters">
    <label>Buscar artículo, SKU o motivo<input value={filters.search} maxLength="100" onChange={e=>change('search',e.target.value)} placeholder="Buscar movimientos…"/></label>
    <label>Artículo<select value={filters.productId} onChange={e=>change('productId',e.target.value)}><option value="">Todos los artículos</option>{products.map(p=><option value={p.id} key={p.id}>{p.description} · {p.product_code||'sin SKU'}</option>)}</select></label>

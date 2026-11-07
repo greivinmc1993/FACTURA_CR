@@ -1,3 +1,30 @@
+## Nuevo en v0.6.50 — Exportaciones uniformes CSV, Excel y PDF
+
+- Kardex: exportaciones **CSV UTF-8 BOM, Excel .xlsx y PDF A4 horizontal** con filtros, trazabilidad y cantidades negativas correctamente numéricas.
+- Catálogo: opciones CSV, Excel .xlsx y PDF. Movimientos: CSV, Excel (endpoint existente) y PDF.
+- Valoración: exportación adicional Excel .xlsx con columnas autoajustadas, junto al CSV y PDF existentes.
+- Créditos: PDF del historial filtrado y CSV existente. Reposición: PDF de alertas junto al CSV.
+- Normalización de codificación y caracteres, texto HTML escapado, encabezados, filtros y métricas en los documentos.
+- Para evitar `########` en Excel, **usa Excel .xlsx**: CSV no guarda anchuras ni tipos de celda; al abrir CSV, Excel decide el ancho automáticamente. El CSV UTF-8 con BOM sí evita caracteres como `ArtÃ­culo`.
+- Se conserva el CSV de catálogo importable. La exportación CSV estándar ahora usa UTF-8 BOM y permite solicitar el legado `?encoding=windows1252`.
+- No modifica registros de SQLite ni operaciones comerciales. Todo PDF se guarda mediante la función local de Electron.
+
+### Matriz de exportaciones revisadas
+
+| Área | CSV | Excel .xlsx | PDF |
+|---|---|---|---|
+| Kardex | Sí | Sí | Sí |
+| Catálogo de artículos | Sí | Sí | Sí |
+| Movimientos de inventario | Sí | Sí | Sí |
+| Valoración de inventario | Sí | Sí | Sí |
+| Alertas de reposición | Sí | — | Sí |
+| Dashboard / análisis comercial | Resumen y detalle | — | Resumen y detalle |
+| Historial de ventas | Todas y filtradas | — | Filtradas |
+| Créditos y abonos | Sí | — | Sí |
+| Proformas | — | — | Sí |
+
+**Importante:** los CSV no conservan anchos ni tipos de columna (limitación del formato). Para consultar un Kardex en Excel sin `########` ni conversiones automáticas, usa **Exportar Excel .xlsx**. El PDF se genera con Electron y requiere validación visual final en Windows. Los datos se exportan desde cada empresa sin alterar el inventario.
+
 ## Nuevo en v0.6.49 — Valoración de inventario
 
 - Nueva pantalla **Valoración inventario** con indicadores y tabla paginada de productos activos bajo control de existencias.

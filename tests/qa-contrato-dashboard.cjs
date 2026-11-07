@@ -15,7 +15,7 @@ const checks=[
  ['Paginación de ventas y exportación total independientes',()=>assert.ok(routes.includes('LIMIT ? OFFSET ?')&&routes.includes('salesRows(f,{all:true})'))],
  ['Exportación CSV detallada y resumen',()=>assert.ok(routes.includes('dashboard/export.csv')&&routes.includes("kind==='detallado'")&&routes.includes('sep=;'))],
  ['Exportación PDF en servidor y escritorio Electron',()=>assert.ok(routes.includes('dashboard/export.html')&&panel.includes('facturacrReports.savePdf'))],
- ['CSV protege valores de origen externo contra fórmulas',()=>assert.ok(routes.includes('const csvCell')&&routes.includes('replace(/"/g'))],
+ ['CSV protege valores de origen externo contra fórmulas',()=>assert.ok(routes.includes('const csvCell')&&fs.readFileSync(path.join(root,'server','report-format.js'),'utf8').includes('replace(/"/g'))],
  ['Tabla de ventas, rankings de clientes y productos',()=>assert.ok(panel.includes('Ventas filtradas')&&panel.includes('Clientes con más compras')&&panel.includes('Productos más vendidos'))],
  ['Navegación conserva empresa activa',()=>assert.ok(ui.includes("tab==='dashboard'?<DashboardPanel companyId={selected} company={current}/>"))],
  ['La interfaz muestra estados de carga y error',()=>assert.ok(panel.includes('setBusy(true)')&&panel.includes('role="alert"'))],

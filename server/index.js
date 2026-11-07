@@ -1,3 +1,4 @@
+import {csvCell as formattedCsvCell, csvDocument, reportHtml} from './report-format.js';
 import { registerInventoryValuationRoutes } from './inventory-valuation.js';
 import { buildInventoryAlerts } from './inventory-alerts.js';
 import { registerKardexRoutes } from './kardex.js';
@@ -500,7 +501,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
   const ivaRateLabel=product=>`${Number(product.tax_rate||0).toLocaleString('es-CR',{maximumFractionDigits:2})}%`;
   // Excel en Costa Rica usa normalmente punto y coma como separador regional.
   // BOM UTF-8 + sep=; permite abrir directamente con doble clic en Excel.
-  const csvEscape=value=>'"'+String(value??'').replace(/"/g,'""')+'"';
+  const csvEscape=formattedCsvCell;
   // Excel convierte automáticamente identificadores largos en notación científica.
   // Solo los identificadores formados por dígitos se representan como texto en Excel.
   // Se limita estrictamente a dígitos para no introducir fórmulas arbitrarias en CSV.
@@ -508,14 +509,12 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const str=String(value??'');
     return /^\d+$/.test(str) ? '=\"'+str+'\"' : str;
   };
-  const csvLine=(values,identifierIndices=[])=>values.map((v,i)=>csvEscape(identifierIndices.includes(i)?excelIdentifier(v):v)).join(';')+'\r\n';
+  const csvLine=(values,identifierIndices=[])=>values.map((v,i)=>formattedCsvCell(v,{identifier:identifierIndices.includes(i)})).join(';')+'\r\n';
   // CSV para Excel de Windows en configuración regional española.
-  // Excel clásico puede interpretar UTF-8 como Windows-1252 incluso con BOM;
-  // por eso la descarga directa usa Windows-1252, sin BOM.
-  // Para interoperabilidad, ?encoding=utf8 permite exportar UTF-8 con BOM.
-  const csvEncoding=req=>req.query.encoding==='utf8'?'utf8':'windows-1252';
+  // Se usa UTF-8 con BOM para Excel 365; ?encoding=windows1252 activa compatibilidad antigua.
+  const csvEncoding=req=>req.query.encoding==='windows1252'?'windows-1252':'utf8';
   const csvBytes=(text,encoding)=>{
-    if(encoding==='utf8')return Buffer.from('\uFEFF'+text,'utf8');
+    if(encoding==='utf8')return Buffer.from(text,'utf8');
     // Códigos Windows-1252 para símbolos comunes fuera de Latin-1.
     const cp1252={0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
     const bytes=[];
@@ -535,6 +534,14 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition','attachment; filename="FacturaCR_catalogo.xlsx"');res.send(buffer);
   });
+  app.get('/api/companies/:companyId/products/export.html',(req,res)=>{
+    const companyId=Number(req.params.companyId);
+    const company=db.prepare('SELECT legal_name,trade_name FROM companies WHERE id=?').get(companyId);
+    if(!company)return res.status(404).json({error:'Empresa no encontrada.'});
+    const products=db.prepare('SELECT description,product_code,barcode,kind,stock,min_stock,unit,price,cost,currency FROM products WHERE company_id=? AND is_deleted=0 ORDER BY description COLLATE NOCASE').all(companyId);
+    const rows=products.map(p=>[p.description,p.product_code||'',p.barcode||'',p.kind,p.kind==='producto'?p.stock:'—',p.min_stock,p.unit,p.price,p.cost,p.currency]);
+    res.type('html').send(reportHtml({title:'Catálogo de productos y servicios',company:company.trade_name||company.legal_name,subtitle:'Artículos activos y servicios registrados. Los importes son valores del catálogo.',headers:['Artículo','SKU','Barras','Tipo','Existencias','Mínimo','Unidad','Precio','Costo','Moneda'],rows,summary:[['Artículos y servicios',rows.length]],note:'Precios y costos según catálogo actual. No constituye comprobante electrónico.'}));
+  });
   app.get('/api/companies/:companyId/products/export.csv',(req,res)=>{
     const companyId=Number(req.params.companyId);
     if(!Number.isSafeInteger(companyId)||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId))return res.status(404).json({error:'Empresa no encontrada.'});
@@ -543,7 +550,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const encoding=csvEncoding(req);
     res.setHeader('Content-Type',`text/csv; charset=${encoding}`);
     res.setHeader('Content-Disposition','attachment; filename="FacturaCR_catalogo_excel.csv"');
-    res.send(csvBytes('sep=;\r\n'+csvLine(catalogLabels)+products.map(product=>csvLine(catalogColumns.flatMap((k,i)=>i===9?[ivaRateLabel(product),product[k]]:[product[k]]),[1,2,4,8])).join(''),encoding));
+    res.send(csvBytes((encoding==='utf8'?'\uFEFF':'')+'sep=;\r\n'+csvLine(catalogLabels)+products.map(product=>csvLine(catalogColumns.flatMap((k,i)=>i===9?[ivaRateLabel(product),product[k]]:[product[k]]),[1,2,4,8])).join(''),encoding));
   });
   // Actualización masiva separada de la importación: vista previa y aplicación atómica.
   // Nunca crea artículos; exige identificadores únicos y versiones originales vigentes.
@@ -730,6 +737,14 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       AND stock<=min_stock ORDER BY stock,description COLLATE NOCASE`).all(companyId);
     res.json(buildInventoryAlerts(products));
   });
+  app.get('/api/companies/:companyId/inventory/alerts/export.html',(req,res)=>{
+    const companyId=Number(req.params.companyId),company=db.prepare('SELECT legal_name,trade_name FROM companies WHERE id=?').get(companyId);
+    if(!company)return res.status(404).json({error:'Empresa no encontrada.'});
+    const products=db.prepare(`SELECT id,product_code,description,unit,kind,stock,min_stock,track_stock,alert_enabled,is_deleted,cost,currency FROM products WHERE company_id=? AND is_deleted=0 AND kind='producto' AND track_stock=1 AND alert_enabled=1 AND stock<=min_stock ORDER BY stock,description COLLATE NOCASE`).all(companyId);
+    const {rows,summary}=buildInventoryAlerts(products);
+    const vals=rows.map(x=>[x.code,x.description,x.status,x.stock,x.minimum,x.suggested,x.unit,x.estimatedCostCRC===null?'Sin costo CRC':x.estimatedCostCRC]);
+    res.type('html').send(reportHtml({title:'Plan de reposición del inventario',company:company.trade_name||company.legal_name,subtitle:'Alertas de existencias bajas y productos agotados. Cantidades sugeridas, sin registrar compras.',headers:['SKU','Producto','Estado','Existencias','Mínimo','Reponer','Unidad','Costo estimado CRC'],rows:vals,summary:[['Artículos por reponer',summary.total],['Agotados',summary.out],['Unidades sugeridas',summary.suggestedUnits],['Costo conocido CRC',summary.estimatedCostCRC]],note:'Costo estimado parcial si hay productos sin costo válido en colones. No modifica inventario.'}));
+  });
   registerKardexRoutes(app,db);
   registerInventoryValuationRoutes(app,db);
   // Movimientos: la API calcula el saldo dentro de una transacción SQLite.
@@ -753,6 +768,17 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition','attachment; filename="FacturaCR_movimientos.xlsx"');res.send(buffer);
   });
+  app.get('/api/companies/:companyId/inventory/movements/export.html',(req,res)=>{
+    const companyId=Number(req.params.companyId),status=String(req.query.status||'all'),sort=String(req.query.sort||'az');
+    const company=db.prepare('SELECT legal_name,trade_name FROM companies WHERE id=?').get(companyId);
+    if(!company)return res.status(404).json({error:'Empresa no encontrada.'});
+    if(!['all','active','deleted'].includes(status)||!['az','za','newest','oldest'].includes(sort))return res.status(400).json({error:'Filtro u ordenamiento inválido.'});
+    const where=status==='active'?' AND p.is_deleted=0':status==='deleted'?' AND p.is_deleted=1':'';
+    const order={az:'p.description COLLATE NOCASE ASC, m.id DESC',za:'p.description COLLATE NOCASE DESC, m.id DESC',newest:'m.id DESC',oldest:'m.id ASC'}[sort];
+    const entries=db.prepare(`SELECT m.id,m.created_at,p.description,p.product_code,p.is_deleted,m.movement_type,m.quantity,m.delta,m.stock_before,m.stock_after,m.reason,m.notes FROM inventory_movements m JOIN products p ON p.id=m.product_id AND p.company_id=m.company_id WHERE m.company_id=?${where} ORDER BY ${order}`).all(companyId);
+    const rows=entries.map(r=>[r.id,r.created_at,r.description+' · '+(r.product_code||'Sin SKU'),r.is_deleted?'Retirado':'Activo',r.movement_type,r.delta,r.stock_before,r.stock_after,r.reason||'',r.notes||'']);
+    res.type('html').send(reportHtml({title:'Movimientos de inventario',company:company.trade_name||company.legal_name,subtitle:`Estado ${status} · Orden ${sort} · Fechas en UTC`,headers:['ID','Fecha UTC','Artículo / SKU','Estado','Tipo','Variación','Antes','Después','Motivo','Observaciones'],rows,summary:[['Movimientos',rows.length]]}));
+  });
   app.get('/api/companies/:companyId/inventory/movements/export.csv',(req,res)=>{
     const companyId=Number(req.params.companyId);
     if(!Number.isSafeInteger(companyId)||companyId<1||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId))return res.status(404).json({error:'Empresa no encontrada.'});
@@ -766,7 +792,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const encoding=csvEncoding(req);
     res.setHeader('Content-Type',`text/csv; charset=${encoding}`);
     res.setHeader('Content-Disposition','attachment; filename="FacturaCR_movimientos_excel.csv"');
-    res.write(csvBytes('sep=;\r\n'+csvLine(headers),encoding));
+    res.write(csvBytes((encoding==='utf8'?'\uFEFF':'')+'sep=;\r\n'+csvLine(headers),encoding));
     for(const r of rows){
       const values=[r.id,r.created_at,r.description,r.product_code,r.barcode,r.is_deleted?'Eliminado':'Activo',r.movement_type,r.quantity,r.delta,r.stock_before,r.stock_after,r.reason,r.notes];
       res.write(csvBytes(csvLine(values,[3,4]),encoding));
@@ -1009,7 +1035,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       const companyId=saleCompany(req);
       const rows=db.prepare(`SELECT s.*,COALESCE(c.name,'Consumidor final') AS client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id WHERE s.company_id=? ORDER BY s.id DESC`).all(companyId);
       const columns=['Venta','Fecha','Cliente','Tipo','Estado','Subtotal CRC','Descuento CRC','Impuesto CRC','Total CRC','Pagado CRC','Saldo CRC','Motivo anulación'];
-      const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+      const cell=formattedCsvCell;
       const csv='sep=;\r\n'+[columns,...rows.map(r=>[r.id,r.created_at,r.client_name,r.sale_type,r.status,r.subtotal_cents/100,r.discount_cents/100,r.tax_cents/100,r.total_cents/100,r.paid_cents/100,r.balance_cents/100,r.annul_reason||''])].map(row=>row.map(cell).join(';')).join('\r\n');
       res.setHeader('Content-Type','text/csv; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="FacturaCR_ventas.csv"');res.send('\ufeff'+csv);
     }catch(e){res.status(400).json({error:e.message})}

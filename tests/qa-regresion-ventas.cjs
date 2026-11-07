@@ -104,6 +104,6 @@ test('Código contiene los arreglos del QA en frontend y backend',()=>{
 test('La versión coincide con los metadatos',()=>{
   const pkg=require(path.join(root,'package.json'));
   const lock=require(path.join(root,'package-lock.json'));
-  assert.equal(pkg.version,'0.6.49');assert.equal(lock.version,'0.6.49');assert.equal(lock.packages[''].version,'0.6.49');
+  assert.equal(pkg.version,'0.6.50');assert.equal(lock.version,'0.6.50');assert.equal(lock.packages[''].version,'0.6.50');
 });
 console.log(`${passed} comprobaciones completadas. ${process.exitCode?'Fallaron pruebas.':'Sin fallos.'}`);

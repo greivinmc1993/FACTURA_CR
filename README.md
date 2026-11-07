@@ -495,3 +495,8 @@ La verificación compara las columnas históricas y exige valores idénticos. Pe
 Desde **Kardex · Movimientos** se consulta el historial global por empresa con filtros de producto, tipo, fechas UTC y texto. El saldo anterior y posterior se lee del historial inmutable. Los indicadores calculan variaciones positivas y negativas (incluyen ajustes según su delta). La tabla muestra 50 movimientos por página y el CSV exporta **todos** los movimientos filtrados. El módulo es de solo lectura.
 
 Ejecuta `npm test` antes de `npm run dist:win`; valida el trabajo de GitHub Actions en el próximo push, especialmente la actualización real desde v0.6.34.
+
+
+### Ajustes de inventario v0.6.47
+
+En Inventario y servicios → Movimientos puedes establecer existencias finales incluso en cero, seleccionar o escribir un motivo, previsualizar el saldo y confirmar un movimiento que queda registrado en el Kardex. Requiere motivo mínimo de 5 caracteres y evita dobles envíos desde la interfaz.

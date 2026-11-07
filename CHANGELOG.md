@@ -1,3 +1,13 @@
+## 0.6.47 — Ajustes de inventario y auditoría
+
+- Permite realizar un ajuste con existencias finales en cero.
+- Vista previa de existencias y variación antes de confirmar.
+- Motivos sugeridos editables y validación de motivos de al menos cinco caracteres.
+- Protección contra dobles envíos en movimientos manuales.
+- Confirma el identificador del movimiento y sus saldos después de registrar.
+- Controles transaccionales de cantidades y límites en el servidor.
+- Pruebas de integración para ajustes, trazabilidad y validación.
+
 ## 0.6.46 — Kardex avanzado de inventario
 
 - Vista global de movimientos por empresa, filtros combinados de artículo, tipo, fechas UTC y búsqueda.

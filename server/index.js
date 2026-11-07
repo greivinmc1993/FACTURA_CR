@@ -776,7 +776,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
     const type=String(req.body?.movement_type??''),quantity=Number(req.body?.quantity);
     const reason=String(req.body?.reason??'').trim(),notes=String(req.body?.notes??'').trim();
     if(!Number.isSafeInteger(companyId)||companyId<1||!db.prepare('SELECT id FROM companies WHERE id=?').get(companyId)) return res.status(404).json({error:'Empresa no encontrada.'});
-    if(!Number.isSafeInteger(productId)||productId<1||!['entrada','salida','ajuste'].includes(type)||!Number.isSafeInteger(quantity)||quantity<=0||quantity>1e9||!reason||reason.length>120||notes.length>500) return res.status(400).json({error:'Revise producto, tipo, cantidad positiva, motivo y observaciones.'});
+    if(!Number.isSafeInteger(productId)||productId<1||!['entrada','salida','ajuste'].includes(type)||!Number.isSafeInteger(quantity)||quantity<(type==='ajuste'?0:1)||quantity>1e9||reason.length<5||reason.length>120||notes.length>500) return res.status(400).json({error:'Revise producto, tipo, cantidad (los ajustes permiten cero), motivo de al menos 5 caracteres y observaciones.'});
     try {
       const tx=db.transaction(()=>{
         const product=db.prepare('SELECT * FROM products WHERE company_id=? AND id=? AND is_deleted=0').get(companyId,productId);
@@ -785,11 +785,16 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
         if(!Number.isSafeInteger(before)) throw Error('Este artículo tiene existencias decimales de una versión anterior. Regulariza su inventario antes de registrar movimientos.');
         // Ajuste significa establecer el saldo final a la cantidad indicada.
         const after=type==='ajuste'?quantity:before+(type==='entrada'?quantity:-quantity);
+        if(!Number.isSafeInteger(after)||after>1e9) throw Error('La cantidad final excede el límite permitido.');
         if(after<0) throw Error('No hay existencias suficientes para realizar la salida.');
         const delta=after-before;
         if(delta===0) throw Error('El ajuste no cambia las existencias.');
         db.prepare('UPDATE products SET stock=? WHERE company_id=? AND id=?').run(after,companyId,productId);
-        const result=db.prepare('INSERT INTO inventory_movements(company_id,product_id,movement_type,quantity,delta,stock_before,stock_after,reason,notes) VALUES (?,?,?,?,?,?,?,?,?)').run(companyId,productId,type,quantity,delta,before,after,reason,notes);
+        // En ajustes a saldo cero, la columna histórica quantity exige > 0.
+        // Guardar la magnitud de la variación preserva el esquema y refleja la salida real;
+        // stock_after conserva el saldo final solicitado (cero).
+        const loggedQuantity=type==='ajuste'&&quantity===0?Math.abs(delta):quantity;
+        const result=db.prepare('INSERT INTO inventory_movements(company_id,product_id,movement_type,quantity,delta,stock_before,stock_after,reason,notes) VALUES (?,?,?,?,?,?,?,?,?)').run(companyId,productId,type,loggedQuantity,delta,before,after,reason,notes);
         return db.prepare('SELECT * FROM inventory_movements WHERE id=?').get(result.lastInsertRowid);
       });
       res.status(201).json(tx());

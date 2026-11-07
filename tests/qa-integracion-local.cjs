@@ -51,7 +51,7 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.46')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.47')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -95,6 +95,27 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
    const bRes=await call('GET',`/api/companies/${b}/inventory/alerts`);
    assert.equal(bRes.status,200);assert.equal(bRes.body.rows.length,0);
    const invalid=await call('GET','/api/companies/999999/inventory/alerts');assert.equal(invalid.status,404);
+  });
+  await check('Ajuste físico permite saldo cero y conserva motivo, variación y trazabilidad',async()=>{
+   const url=`/api/companies/${a}/inventory/movements`;
+   let r=await call('POST',url,{product_id:prodId,movement_type:'ajuste',quantity:0,reason:'Conteo físico',notes:'Inventario físico en cero'});
+   assert.equal(r.status,201,JSON.stringify(r.body));assert.equal(r.body.stock_before,10);assert.equal(r.body.stock_after,0);assert.equal(r.body.delta,-10);
+   const sql=read();assert.equal(sql.prepare('SELECT stock FROM products WHERE id=?').get(prodId).stock,0);sql.close();
+   r=await call('POST',url,{product_id:prodId,movement_type:'entrada',quantity:10,reason:'Compra a proveedor',notes:'Restituir existencias'});
+   assert.equal(r.status,201,JSON.stringify(r.body));assert.equal(r.body.stock_after,10);
+   const card=await call('GET',`/api/companies/${a}/inventory/kardex?productId=${prodId}`);
+   assert.equal(card.status,200);assert.ok(card.body.rows.some(x=>x.movement_type==='ajuste'&&x.stock_after===0&&x.reason==='Conteo físico'));
+  });
+  await check('No permite motivos vacíos, ajustes sin cambio ni salidas que generen stock negativo',async()=>{
+   const url=`/api/companies/${a}/inventory/movements`;
+   const bad=[
+    {product_id:prodId,movement_type:'ajuste',quantity:9,reason:'x'},
+    {product_id:prodId,movement_type:'ajuste',quantity:10,reason:'Conteo físico'},
+    {product_id:prodId,movement_type:'salida',quantity:11,reason:'Producto dañado'},
+    {product_id:prodId,movement_type:'entrada',quantity:0,reason:'Compra a proveedor'}
+   ];
+   for(const body of bad){const r=await call('POST',url,body);assert.equal(r.status,400,JSON.stringify(r.body))}
+   const sql=read();assert.equal(sql.prepare('SELECT stock FROM products WHERE id=?').get(prodId).stock,10);sql.close();
   });
   await check('Contado: ₡619 base + ₡81 IVA = ₡700 y salida de inventario',async()=>{
    const r=await call('POST',`/api/companies/${a}/sales`,{sale_type:'contado',client_id:clientId,discount:0,lines:[{product_id:prodId,quantity:1}],payments:[{method:'SINPE Móvil',amount:700}]});

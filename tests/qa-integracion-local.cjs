@@ -20,6 +20,7 @@ serverText=serverText.replace("import express from 'express'","import express fr
 fs.writeFileSync(path.join(staging,'index.mjs'),serverText);
 fs.copyFileSync(path.join(root,'server','dashboard.js'),path.join(staging,'dashboard.js'));
 fs.copyFileSync(path.join(root,'server','inventory-alerts.js'),path.join(staging,'inventory-alerts.js'));
+fs.copyFileSync(path.join(root,'server','kardex.js'),path.join(staging,'kardex.js'));
 for(const name of ['express.mjs','sqlite.mjs'])fs.copyFileSync(path.join(__dirname,'qa-adapters',name),path.join(staging,name));
 fs.copyFileSync(path.join(root,'server','xlsx.js'),path.join(staging,'xlsx.js'));
 // El módulo ESM se interpreta como ESM incluso si el proyecto padre usa CommonJS.
@@ -44,13 +45,13 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   const actualParts=pathname.split('/'),routeParts=route.path.split('/'),params={};
   routeParts.forEach((part,i)=>{if(part.startsWith(':'))params[part.slice(1)]=actualParts[i]});
   let status=200,result,completed=false;
-  const res={headersSent:false,status(s){status=s;return this},json(v){result=v;completed=true;return this},setHeader(){},type(){return this},send(v){result=v;completed=true;return this}};
+  const chunks=[];const res={headersSent:false,write(v){chunks.push(String(v));return true},end(){result=chunks.join('');completed=true;return this},status(s){status=s;return this},json(v){result=v;completed=true;return this},setHeader(){},type(){return this},send(v){result=v;completed=true;return this}};
   await route.handler({params,body,headers:{},query:Object.fromEntries(parsedUrl.searchParams),originalUrl:url},res);
   assert.equal(completed,true,`Sin respuesta ${method} ${url}`);
   return {status,body:result};
  };
  try{
-  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.45')});
+  await check('API de diagnóstico declara versión actual',async()=>{const r=await call('GET','/api/health');assert.equal(r.status,200);assert.equal(r.body.version,'0.6.46')});
   await check('Inicio y esquema SQLite en base nueva',async()=>{
    const sql=read();const tables=sql.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>r.name);
    for(const name of ['companies','clients','products','sales','sale_lines','sale_payments','inventory_movements','quotations','quotation_lines','company_quote_settings'])assert.ok(tables.includes(name),name);
@@ -71,6 +72,22 @@ async function check(name,fn){try{await fn();passed++;console.log('OK ',name)}ca
   await check('Producto IVA incluido ₡700 con existencias',async()=>{
    const r=await call('POST',`/api/companies/${a}/products`,{kind:'producto',description:'Producto QA',cabys:'1234567890123',product_code:'SKU700',price:'700',cost:'300',currency:'CRC',tax_code:'08',price_includes_tax:'1',unit:'Unid',stock:'10',min_stock:'2',track_stock:'1',alert_enabled:'1'});
    assert.equal(r.status,201,JSON.stringify(r.body));prodId=r.body.id;
+  });
+  await check('Kardex global: historial, saldos, aislamiento y filtros',async()=>{
+   let r=await call('GET',`/api/companies/${a}/inventory/kardex`);
+   assert.equal(r.status,200,JSON.stringify(r.body));assert.ok(r.body.summary.count>=1);
+   assert.equal(r.body.rows[0].stock_after,10);
+   r=await call('GET',`/api/companies/${b}/inventory/kardex`);assert.equal(r.body.summary.count,0);
+   r=await call('GET',`/api/companies/${a}/inventory/kardex?type=entrada&productId=${prodId}`);
+   assert.equal(r.status,200);assert.ok(r.body.rows.every(x=>x.movement_type==='entrada'));
+   r=await call('GET',`/api/companies/${a}/inventory/kardex?type=invalido`);assert.equal(r.status,400);
+   r=await call('GET',`/api/companies/${a}/inventory/kardex?from=2026-02-31`);assert.equal(r.status,400);
+   r=await call('GET',`/api/companies/999999/inventory/kardex`);assert.equal(r.status,404);
+  });
+  await check('Kardex CSV tiene encabezado y movimientos filtrados',async()=>{
+   const r=await call('GET',`/api/companies/${a}/inventory/kardex/export.csv?productId=${prodId}`);
+   assert.equal(r.status,200);assert.ok(r.body.includes('Existencia anterior'));
+   assert.ok(r.body.includes('Inventario inicial'));
   });
   await check('Alertas de inventario por empresa no mezclan artículos y validan compañía',async()=>{
    const aRes=await call('GET',`/api/companies/${a}/inventory/alerts`);

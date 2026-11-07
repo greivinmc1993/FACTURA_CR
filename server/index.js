@@ -1,4 +1,5 @@
 import { buildInventoryAlerts } from './inventory-alerts.js';
+import { registerKardexRoutes } from './kardex.js';
 import { registerDashboardRoutes } from './dashboard.js';
 import { makeXlsx } from './xlsx.js';
 import express from 'express';
@@ -728,6 +729,7 @@ export async function startServer({ dataDir = join(process.cwd(), 'data'), port 
       AND stock<=min_stock ORDER BY stock,description COLLATE NOCASE`).all(companyId);
     res.json(buildInventoryAlerts(products));
   });
+  registerKardexRoutes(app,db);
   // Movimientos: la API calcula el saldo dentro de una transacción SQLite.
   app.get('/api/companies/:companyId/inventory/movements',(req,res)=>{
     const companyId=Number(req.params.companyId), productId=Number(req.query.productId);

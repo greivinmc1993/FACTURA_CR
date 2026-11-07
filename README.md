@@ -488,3 +488,10 @@ En Inventario y servicios, la lista de reposición muestra productos agotados o 
 ### Corrección QA de migración 0.6.34 → 0.6.45
 
 La verificación compara las columnas históricas y exige valores idénticos. Permite la columna nueva `sale_lines.unit_cost_cents`, pero comprueba que quede `NULL` para líneas anteriores a su creación. El comando `npm test` incluye una regresión específica.
+
+
+## Kardex avanzado — v0.6.46
+
+Desde **Kardex · Movimientos** se consulta el historial global por empresa con filtros de producto, tipo, fechas UTC y texto. El saldo anterior y posterior se lee del historial inmutable. Los indicadores calculan variaciones positivas y negativas (incluyen ajustes según su delta). La tabla muestra 50 movimientos por página y el CSV exporta **todos** los movimientos filtrados. El módulo es de solo lectura.
+
+Ejecuta `npm test` antes de `npm run dist:win`; valida el trabajo de GitHub Actions en el próximo push, especialmente la actualización real desde v0.6.34.

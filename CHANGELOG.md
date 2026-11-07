@@ -1,3 +1,11 @@
+## 0.6.46 — Kardex avanzado de inventario
+
+- Vista global de movimientos por empresa, filtros combinados de artículo, tipo, fechas UTC y búsqueda.
+- Indicadores de movimientos y variaciones reales de existencias, con paginación de 50 registros.
+- Exportación CSV completa del historial filtrado, incluyendo artículos retirados y SKU.
+- Se mantiene la corrección de QA de migración SQLite de v0.6.45.
+- No se altera el esquema ni los movimientos existentes.
+
 ## 0.6.45 — Corrección del QA entre versiones
 
 - Prueba de actualización 0.6.34 → 0.6.45 compatible con migraciones aditivas de SQLite.
